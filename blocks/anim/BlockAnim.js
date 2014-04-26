@@ -29,6 +29,7 @@ function (_, utils, Anim) {
     _defaults: _.defaults({
       bindKeys: null,
       block: null,
+      constructorName: 'BlockAnim',
       id: 'block-anim'
     }, Anim.prototype._defaults),
 

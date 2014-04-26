@@ -45,6 +45,7 @@ function (_, utils, Core, Clone) {
 
     _defaults: _.defaults({
       clones: null,
+      constructorName: 'Pool',
       id: 'pool',
       model: null,
       size: 10,

@@ -19,6 +19,7 @@ function (_, utils) {
     'constructor': Core,
 
     _defaults: {
+      constructorName: 'Core',
       id: 'core'
     },
 
@@ -32,10 +33,7 @@ function (_, utils) {
     },
 
     getConstructorName: function() {
-      var funcNameRegex = /function (.{1,})\(/;
-      var results = (funcNameRegex).exec((this).constructor.toString());
-
-      return (results && results.length > 1) ? results[1] : '';
+      return this.values('constructorName');
     },
 
     values: function (key, value) {

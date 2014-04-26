@@ -44,6 +44,7 @@ function (_, utils, Core) {
     'constructor': Node,
 
     _defaults: _.defaults({
+      constructorName: 'Node',
       currentTarget: null,
       domClass: 'node',
       domId: 'node',

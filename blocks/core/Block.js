@@ -31,6 +31,7 @@ function (_, utils, Core, List, Node) {
       anchorX: 0,
       anchorY: 0,
       children: null,
+      constructorName: 'Block',
       currentTarget: null,
       dirty: true,
       domClass: 'g',

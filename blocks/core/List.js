@@ -18,6 +18,7 @@ function (_, utils, Core) {
     'constructor': List,
 
     _defaults: _.defaults({
+      constructorName: 'List',
       elements: null,
       id: 'list'
     }, Core.prototype._defaults),

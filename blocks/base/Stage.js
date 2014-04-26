@@ -30,6 +30,7 @@ function (_, utils, Block, Node) {
     _defaults: _.defaults({
       anchorMode: utils.ANCHOR_MODE.MANUAL,
       active: true,
+      constructorName: 'Stage',
       container: null,
       defs: null,
       id: 'stage',

@@ -22,8 +22,9 @@ function (_, utils, Core) {
     'constructor': Anim,
 
     _defaults: _.defaults({
-      id: 'anim',
+      constructorName: 'Anim',
       duration: 1,
+      id: 'anim',
       tween: null,
       tweenValues: {}
     }, Core.prototype._defaults),

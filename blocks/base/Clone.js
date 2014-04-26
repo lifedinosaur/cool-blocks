@@ -21,6 +21,7 @@ function (_, utils, Block, Node) {
 
     _defaults: _.defaults({
       allocated: false,
+      constructorName: 'Clone',
       domClass: 'clone',
       domId: 'clone',
       id: 'clone',

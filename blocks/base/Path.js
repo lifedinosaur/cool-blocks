@@ -15,6 +15,7 @@ function (_, utils, Block) {
     'constructor': Path,
 
     _defaults: _.defaults({
+      constructorName: 'Path',
       d: undefined,
       domClass: 'path',
       domId: 'path',
