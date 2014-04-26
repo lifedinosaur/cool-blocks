@@ -24,9 +24,9 @@ require.config(
   baseUrl: 'js/',
   paths:
   {
-    blocks: 'svg/blocks',
-    jquery: 'lib/jquery-1.10.2.min',
-    lodash: 'lib/lodash-2.4.1.min'
+    blocks: 'lib/blocks/',
+    jquery: 'lib/jquery',
+    lodash: 'lib/lodash'
   }
 });
 
@@ -34,7 +34,7 @@ define(
 [
   'jquery',
   'lodash',
-  'svg/blocks',
+  'lib/blocks',
   'lib/greensock'
 ],
 function($, _, blocks) {
