@@ -25,6 +25,7 @@ function (_) {
       SVG_NODES: ['defs', 'g', 'path', 'rect', 'svg', 'use']
     },
 
+
     checkBlock: function (value) {
       if (utils.checkValid(value)) {
         if (_.isFunction(value.getConstructorName)) {
@@ -103,45 +104,81 @@ function (_) {
       return node;
     },
 
-    getGearCoordinates: function (edges, outerRadius, innerRadius, apex) {
+    getBoundsFromCoords: function (coords) {
+      var x1 = Math.pow(10, 9);
+      var x2 = 0;
+      var y1 = Math.pow(10, 9);
+      var y2 = 0;
+
+      _.forEach(coords, function (coord) {
+        if (coord[0] < x1) {
+          x1 = coord[0];
+        }
+        if (coord[0] > x2) {
+          x2 = coord[0];
+        }
+        if (coord[1] < y1) {
+          y1 = coord[1];
+        }
+        if (coord[1] > y2) {
+          y2 = coord[1];
+        }
+      });
+
+      return [x2 - x1, y2 - y1];
+    },
+
+    getGearCoords: function (edges, outerRadius, innerRadius, apex) {
       var shape = [];
       var angle = utils.TWO_PI / edges;
       var fifthAngle = angle / 5;
       apex = (utils.checkNumber(apex)) ? apex : 0;
       apex *= fifthAngle;
 
-      for (var i = 0; i < utils.TWO_PI; i+=angle) {
+      for (var i = 0; i < utils.TWO_PI; i += angle) {
         shape.push([
-          innerRadius * Math.cos(i + OFFSET) + outerRadius,
-          innerRadius * Math.sin(i + OFFSET) + outerRadius
+          innerRadius * Math.cos(i + OFFSET),
+          innerRadius * Math.sin(i + OFFSET)
         ], [
-          outerRadius * Math.cos(fifthAngle + apex + i + OFFSET) + outerRadius,
-          outerRadius * Math.sin(fifthAngle + apex + i + OFFSET) + outerRadius
+          outerRadius * Math.cos(fifthAngle + apex + i + OFFSET),
+          outerRadius * Math.sin(fifthAngle + apex + i + OFFSET)
         ], [
-          outerRadius * Math.cos((fifthAngle * 2) + i + OFFSET) + outerRadius,
-          outerRadius * Math.sin((fifthAngle * 2) + i + OFFSET) + outerRadius
+          outerRadius * Math.cos((fifthAngle * 2) + i + OFFSET),
+          outerRadius * Math.sin((fifthAngle * 2) + i + OFFSET)
         ], [
-          outerRadius * Math.cos((fifthAngle * 3) - apex + i + OFFSET) + outerRadius,
-          outerRadius * Math.sin((fifthAngle * 3) - apex + i + OFFSET) + outerRadius
+          outerRadius * Math.cos((fifthAngle * 3) - apex + i + OFFSET),
+          outerRadius * Math.sin((fifthAngle * 3) - apex + i + OFFSET)
         ], [
-          innerRadius * Math.cos((fifthAngle * 4) + i + OFFSET) + outerRadius,
-          innerRadius * Math.sin((fifthAngle * 4) + i + OFFSET) + outerRadius
+          innerRadius * Math.cos((fifthAngle * 4) + i + OFFSET),
+          innerRadius * Math.sin((fifthAngle * 4) + i + OFFSET)
         ]);
       }
+
+      var bounds = utils.getBoundsFromCoords(shape);
+      bounds[0] /= 2;
+      bounds[1] /= 2;
+
+      utils.offsetCoords(shape, bounds);
 
       return shape;
     },
 
-    getPolygonCoordinates: function (edges, radius) {
+    getPolygonCoords: function (edges, radius) {
       var shape = [];
       var angle = utils.TWO_PI / edges;
 
-      for (var i = 0; i < utils.TWO_PI; i+=angle) {
+      for (var i = 0; i < utils.TWO_PI; i += angle) {
         shape.push([
-          radius * Math.cos(i + OFFSET) + radius,
-          radius * Math.sin(i + OFFSET) + radius
+          radius * Math.cos(i + OFFSET),
+          radius * Math.sin(i + OFFSET)
         ]);
       }
+
+      var bounds = utils.getBoundsFromCoords(shape);
+      bounds[0] /= 2;
+      bounds[1] /= 2;
+
+      utils.offsetCoords(shape, bounds);
 
       return shape;
     },
@@ -170,22 +207,35 @@ function (_) {
       return 'rgb(' + r + ',' + g + ',' + b + ')';
     },
 
-    getRingCoordinates: function (edges, outerRadius, innerRadius) {
+    getRingCoords: function (edges, outerRadius, innerRadius) {
       var shape = [];
       var angle = utils.TWO_PI / edges;
 
       var outerRing = [];
       var innerRing = [];
-      for (var i = 0; i < utils.TWO_PI; i+=angle) {
+      for (var i = 0; i < utils.TWO_PI; i += angle) {
         outerRing.push([
-          outerRadius * Math.cos(i + OFFSET) + outerRadius,
-          outerRadius * Math.sin(i + OFFSET) + outerRadius
+          outerRadius * Math.cos(i + OFFSET),
+          outerRadius * Math.sin(i + OFFSET)
         ]);
         innerRing.push([
-          innerRadius * Math.cos(utils.TWO_PI - i + OFFSET) + outerRadius,
-          innerRadius * Math.sin(utils.TWO_PI - i + OFFSET) + outerRadius
+          innerRadius * Math.cos(utils.TWO_PI - i + OFFSET),
+          innerRadius * Math.sin(utils.TWO_PI - i + OFFSET)
         ]);
       }
+
+      var oBounds = utils.getBoundsFromCoords(outerRing);
+      var iBounds = utils.getBoundsFromCoords(innerRing);
+
+      var bounds = [Math.max(oBounds[0], iBounds[0]),
+        Math.max(oBounds[1], iBounds[1])];
+
+      bounds[0] /= 2;
+      bounds[1] /= 2;
+
+      utils.offsetCoords(outerRing, bounds);
+      utils.offsetCoords(innerRing, bounds);
+
       shape.push(outerRing, innerRing);
 
       return shape;
@@ -207,40 +257,60 @@ function (_) {
       return Math.random();
     },
 
-    getStarCoordinates: function (edges, outerRadius, innerRadius) {
+    getStarCoords: function (edges, outerRadius, innerRadius) {
       var shape = [];
       var angle = utils.TWO_PI / edges;
       var halfAngle = angle / 2;
 
-      for (var i = 0; i < utils.TWO_PI; i+=angle) {
+      for (var i = 0; i < utils.TWO_PI; i += angle) {
         shape.push([
-          outerRadius * Math.cos(i + OFFSET) + outerRadius,
-          outerRadius * Math.sin(i + OFFSET) + outerRadius
+          outerRadius * Math.cos(i + OFFSET),
+          outerRadius * Math.sin(i + OFFSET)
         ], [
-          innerRadius * Math.cos(halfAngle + i + OFFSET) + outerRadius,
-          innerRadius * Math.sin(halfAngle + i + OFFSET) + outerRadius
+          innerRadius * Math.cos(halfAngle + i + OFFSET),
+          innerRadius * Math.sin(halfAngle + i + OFFSET)
         ]);
       }
+
+      var bounds = utils.getBoundsFromCoords(shape);
+      bounds[0] /= 2;
+      bounds[1] /= 2;
+
+      utils.offsetCoords(shape, bounds);
 
       return shape;
     },
 
-    getSunCoordinates: function (edges, outerRadius, innerRadius) {
+    getSunCoords: function (edges, outerRadius, innerRadius) {
       var shape = [];
       var angle = utils.TWO_PI / edges;
       var halfAngle = angle / 2;
 
-      for (var i = 0; i < utils.TWO_PI; i+=angle) {
+      for (var i = 0; i < utils.TWO_PI; i += angle) {
         shape.push([
-          outerRadius * Math.cos(i + OFFSET) + outerRadius,
-          outerRadius * Math.sin(i + OFFSET) + outerRadius
+          outerRadius * Math.cos(i + OFFSET),
+          outerRadius * Math.sin(i + OFFSET)
         ], [
-          innerRadius * Math.cos(i + OFFSET) + outerRadius,
-          innerRadius * Math.sin(i + OFFSET) + outerRadius
+          innerRadius * Math.cos(i + OFFSET),
+          innerRadius * Math.sin(i + OFFSET)
         ]);
       }
 
+      var bounds = utils.getBoundsFromCoords(shape);
+      bounds[0] /= 2;
+      bounds[1] /= 2;
+
+      utils.offsetCoords(shape, bounds);
+
       return shape;
+    },
+
+    offsetCoords: function (shape, offset) {
+      _.map(shape, function (coord) {
+        coord[0] += offset[0];
+        coord[1] += offset[1];
+        return coord;
+      });
     },
 
     roundTo: function (toRound, decPlaces) {
