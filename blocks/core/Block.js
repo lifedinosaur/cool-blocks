@@ -51,7 +51,7 @@ function (_, utils, Core, List, Node) {
       scale: 1,
       stroke: undefined,
       'stroke-opacity': undefined,
-      'stroke-width': 1,
+      'stroke-width': undefined,
       transform: undefined,
       visible: true,
       width: 0,
@@ -186,12 +186,14 @@ function (_, utils, Core, List, Node) {
         width = x2 - x1;
       }
 
-      var strokeAdd = this.values('stroke-width') * 2;
-      width += strokeAdd;
-      height += strokeAdd;
+      if (this.values('stroke')) {
+        var strokeAdd = this.values('stroke-width') * 2;
+        width += strokeAdd;
+        height += strokeAdd;
+      }
 
       this.values({
-        height: width * this.values('scale'),
+        height: height * this.values('scale'),
         width: width * this.values('scale')
       });
 
@@ -280,7 +282,8 @@ function (_, utils, Core, List, Node) {
     _hitTestRootBounds: function () {
       var root = this.values('root');
 
-      var strokeSize = this.values('stroke-width') * this.values('scale');
+      var strokeSize = (this.values('stroke')) ?
+        this.values('stroke-width') * this.values('scale') : 0;
 
       var aX = this.values('width') / 2;
       var aY = this.values('height') / 2;
@@ -334,7 +337,7 @@ function (_, utils, Core, List, Node) {
 
       if (!_.isNull(this.values('parent'))) {
         this._setGlobalXY();
-        this._hitTestRootBounds();
+        //this._hitTestRootBounds();
       }
 
       this.dirty(false);
