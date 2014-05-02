@@ -186,12 +186,6 @@ function (_, utils, Core, List, Node) {
         width = x2 - x1;
       }
 
-      if (this.values('stroke')) {
-        var strokeAdd = this.values('stroke-width') * 2;
-        width += strokeAdd;
-        height += strokeAdd;
-      }
-
       this.values({
         height: height * this.values('scale'),
         width: width * this.values('scale')
