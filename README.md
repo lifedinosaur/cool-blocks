@@ -45,8 +45,6 @@ So go get 'em tiger. There's a lot of work to do.
 ### Version
 Tiny
 
-###License
-[Blocks license]
 
 *Feelng of superiority not guaranteed.
 
@@ -54,4 +52,4 @@ Tiny
 [plugins]:http://www.greensock.com/get-started-js/#plugins
 [Lo-Dash]:http://lodash.com/
 [RequireJS]:http://requirejs.org/
-[Blocks license]:http://opensource.org/licenses/MIT
+[Blocks license]:https://github.com/lifedinosaur/cool-blocks/blob/master/LICENSE

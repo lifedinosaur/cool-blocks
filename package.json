@@ -1,0 +1,39 @@
+{
+  "name": "cool-blocks",
+  "description": "The little SVG renderer that could.",
+  "version": "0.1.0",
+  "homepage": "http://lifedinosaur.com/svg/",
+  "author": {
+    "name": "lifedinosaur",
+    "url": "http://lifedinosaur.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/lifedinosaur/cool-blocks.git"
+  },
+  "main": "Gruntfile.js",
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.0",
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-contrib-copy": "~0.5.0",
+    "grunt-contrib-jshint": "~0.10.0",
+    "grunt-contrib-requirejs": "~0.4.4",
+    "grunt-contrib-uglify": "~0.4.0",
+    "grunt-contrib-watch": "~0.6.1",
+    "grunt-volo": "0.0.2",
+    "load-grunt-tasks": "~0.4.0",
+    "rjs-build-analysis": "~0.0.3",
+    "time-grunt": "~0.3.1"
+  },
+  "volo": {
+    "baseDir": "./",
+    "baseUrl": "./",
+    "add": {
+      "greensock": "greensock/GreenSock-JS/1.11.6",
+      "lodash": "lodash/lodash/2.4.1#/"
+    }
+  }
+}

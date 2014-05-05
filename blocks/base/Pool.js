@@ -1,9 +1,9 @@
 define(
 [
   'lodash',
-  'blocks/utils',
-  'blocks/core/Core',
-  'blocks/base/Clone'
+  'utils',
+  'core/Core',
+  'base/Clone'
 ],
 function (_, utils, Core, Clone) {
   'use strict';
