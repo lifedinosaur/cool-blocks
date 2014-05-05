@@ -1,10 +1,10 @@
 define(
 [
   'lodash',
-  'blocks/utils',
-  'blocks/core/Core',
-  'blocks/core/List',
-  'blocks/core/Node'
+  'utils',
+  'core/Core',
+  'core/List',
+  'core/Node'
 ],
 function (_, utils, Core, List, Node) {
   'use strict';
