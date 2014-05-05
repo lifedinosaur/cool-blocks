@@ -43,8 +43,6 @@ define(
 function () {
   'use strict';
 
-  console.log('welcome to cool blocks!');
-
   var blocks = {
     anim: {
       Anim: require('anim/Anim'),
