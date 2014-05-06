@@ -7460,7 +7460,7 @@ function (_, utils, Core) {
     },
 
     clear: function () {
-      this.values(elements, {});
+      this.values('elements', {});
     },
 
     destroy: function () {
@@ -10573,8 +10573,6 @@ define(
 ],
 function () {
   
-
-  console.log('welcome to cool blocks!');
 
   var blocks = {
     anim: {
