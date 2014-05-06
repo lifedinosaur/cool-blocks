@@ -128,6 +128,12 @@ function (_) {
       return [x2 - x1, y2 - y1];
     },
 
+    getGear: function (edges, outerRadius, innerRadius, apex) {
+      return utils.getInstructionsFrom1DCoords(
+        utils.getGearCoords(edges, outerRadius, innerRadius, apex)
+      );
+    },
+
     getGearCoords: function (edges, outerRadius, innerRadius, apex) {
       var shape = [];
       var angle = utils.TWO_PI / edges;
@@ -163,6 +169,55 @@ function (_) {
       return shape;
     },
 
+    getInstructionsFrom1DCoords: function (coords) {
+      var instructions = [];
+      _.forEach(coords, function (coord, i) {
+        var cmd = 'L';
+        if (i === 0) {
+          cmd = 'M';
+        }
+        instructions.push({
+          cmd: cmd,
+          v: [coord[0], coord[1]]
+        });
+      });
+      instructions.push({
+        cmd: 'z'
+      });
+
+      return instructions;
+    },
+
+    getInstructionsFrom2DCoords: function (coords) {
+      var instructions = [];
+      _.forEach(coords, function (set) {
+        _.forEach(set, function (coord, ii) {
+          var cmd = 'L';
+          if (ii === 0) {
+            cmd = 'M';
+          }
+          instructions.push({
+            cmd: cmd,
+            v: [coord[0], coord[1]]
+          });
+        });
+        instructions.push({
+          cmd: 'z'
+        });
+      });
+      instructions.push({
+        cmd: 'z'
+      });
+
+      return instructions;
+    },
+
+    getPolygon: function (edges, radius) {
+      return utils.getInstructionsFrom1DCoords(
+        utils.getPolygonCoords(edges, radius)
+      );
+    },
+
     getPolygonCoords: function (edges, radius) {
       var shape = [];
       var angle = utils.TWO_PI / edges;
@@ -184,15 +239,15 @@ function (_) {
     },
 
     getRandomColor: function (cMin, cMax, aMin, aMax, rMin, rMax, gMin, gMax, bMin, bMax) {
-      cMin = (_.isUndefined(cMin)) ? 0 : cMin;
-      cMax = (_.isUndefined(cMax)) ? 255 : cMax;
+      cMin = cMin || 0;
+      cMax = cMax || 255;
 
-      rMin = (_.isUndefined(rMin)) ? cMin : rMin;
-      rMax = (_.isUndefined(rMax)) ? cMax : rMax;
-      gMin = (_.isUndefined(gMin)) ? cMin : gMin;
-      gMax = (_.isUndefined(gMax)) ? cMax : gMax;
-      bMin = (_.isUndefined(bMin)) ? cMin : bMin;
-      bMax = (_.isUndefined(bMax)) ? cMax : bMax;
+      rMin = rMin || cMin;
+      rMax = rMax || cMax;
+      gMin = gMin || cMin;
+      gMax = gMax || cMax;
+      bMin = bMin || cMin;
+      bMax = bMax || cMax;
 
       var r = utils.getRandomInteger(rMin, rMax);
       var g = utils.getRandomInteger(gMin, gMax);
@@ -205,6 +260,12 @@ function (_) {
       }
 
       return 'rgb(' + r + ',' + g + ',' + b + ')';
+    },
+
+    getRing: function (edges, outerRadius, innerRadius) {
+      return utils.getInstructionsFrom2DCoords(
+        utils.getRingCoords(edges, outerRadius, innerRadius)
+      );
     },
 
     getRingCoords: function (edges, outerRadius, innerRadius) {
@@ -257,6 +318,12 @@ function (_) {
       return Math.random();
     },
 
+    getStar: function (edges, outerRadius, innerRadius) {
+      return utils.getInstructionsFrom1DCoords(
+        utils.getStarCoords(edges, outerRadius, innerRadius)
+      );
+    },
+
     getStarCoords: function (edges, outerRadius, innerRadius) {
       var shape = [];
       var angle = utils.TWO_PI / edges;
@@ -279,6 +346,12 @@ function (_) {
       utils.offsetCoords(shape, bounds);
 
       return shape;
+    },
+
+    getSun: function (edges, outerRadius, innerRadius) {
+      return utils.getInstructionsFrom1DCoords(
+        utils.getSunCoords(edges, outerRadius, innerRadius)
+      );
     },
 
     getSunCoords: function (edges, outerRadius, innerRadius) {
@@ -329,43 +402,14 @@ function (_) {
       return 'url(#' + id + ')';
     },
 
-    writeSvgPath: function (shape) {
-      if (!shape || !shape.length) {
-        return;
-      }
-
-      var dimensions = 0;
-      var check = shape[0];
-      while (_.isArray(check)) {
-        check = check[0];
-        dimensions++;
-      }
-
-      var path = 'M0,0z';
-      switch (dimensions) {
-        case 1:
-        path = utils.writeSvgPathSegment(shape);
-        break;
-        case 2:
-        path = utils.writeSvgPathSegment(shape[0]);
-        for (var i = 1; i < shape.length; i++) {
-          path += ' ' + utils.writeSvgPathSegment(shape[i]);
-        }
-        break;
-        default:
-        console.error('Error: 3+ dimensional paths not yet supported');
-        break;
-      }
-
-      return path;
-    },
-
-    writeSvgPathSegment: function (segment) {
-      var path = 'M' + segment[0][0] + ',' + segment[0][1];
-      for (var i = 1, ii = segment.length; i < ii; i++) {
-        path += ' L' + segment[i][0] + ',' + segment[i][1];
-      }
-      path += 'z';
+    writeSvgPath: function (instructions) {
+      var path = '';
+      _.forEach(instructions, function (instruction) {
+        path += instruction.cmd;
+        _.forEach(instruction.v, function (val) {
+          path += utils.roundTo(val, ROUND_PRECISION) + ' ';
+        });
+      });
 
       return path;
     },
@@ -387,7 +431,10 @@ function (_) {
     }
   };
 
+  // Calculation constants:
   var OFFSET = -utils.toRadians(90);
+  var ROUND_PRECISION = 6; // decimal places
+
 
   return utils;
 });
