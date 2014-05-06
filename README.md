@@ -35,7 +35,7 @@ Cool Blocks is an r.js optimized package of modules, but the library is not a mo
 
 <!-- require blocks and main.js -->
 <script type="text/javascript">
-  require(['js/lib/blocks', 'js/main.js']);
+  require(['js/lib/blocks.min', 'js/main']);
 </script>
 ```
 
@@ -44,7 +44,7 @@ Cool. You may configure your main file however you like, but be sure to include 
 define(
 [
   'jquery',
-  'lib/blocks'
+  'lib/blocks.min'
 ],
 function($) {
   // welcome to cool blocks!

@@ -28,7 +28,7 @@ function (_, utils, Core) {
 
     this.values({
       domClass: (utils.checkValid(domClass)) ? domClass : type,
-      domId: (utils.checkValid(domId)) ? domId: this.id(),
+      domId: (utils.checkValid(domId)) ? domId : this.id(),
       node: (type === 'use') ? utils.createSvgUseNode(cloneId) : utils.createSvgNode(type),
       type: type
     });
