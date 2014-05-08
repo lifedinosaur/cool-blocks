@@ -90,6 +90,13 @@ module.exports = function(grunt) {
     grunt.task.run(cmd);
   });
 
+  grunt.registerTask('build:dev', [
+    'clean',
+    'packages',
+    'jshint',
+    'requirejs:dev'
+  ]);
+
   grunt.registerTask('build', [
     'clean',
     'packages',
