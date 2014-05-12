@@ -6890,6 +6890,79 @@ function (_) {
       return node;
     },
 
+    getArcSolid: function (startAngle, endAngle, outerRadius, innerRadius) {
+      // A rx ry x-axis-rotation large-arc-flag sweep-flag x y
+
+      innerRadius = innerRadius || 0;
+
+      var radiusDelta = outerRadius - innerRadius;
+      var angleDelta = endAngle - startAngle;
+
+      var instructions = [];
+      if (Math.abs(angleDelta) === 360 || Math.abs(angleDelta) > 360) {
+        instructions.push({
+          cmd: 'M',
+          v: [outerRadius, 0]
+        }, {
+          cmd: 'A',
+          v: [outerRadius, outerRadius, 0, 1, 1, outerRadius, outerRadius * 2]
+        }, {
+          cmd: 'A',
+          v: [outerRadius, outerRadius, 0, 1, 1, outerRadius, 0]
+        });
+
+        if (innerRadius > 0) {
+          instructions.push({
+            cmd: 'M',
+            v: [outerRadius, radiusDelta]
+          }, {
+            cmd: 'A',
+            v: [innerRadius, innerRadius, 0, 1, 0, outerRadius, innerRadius * 2 + radiusDelta]
+          }, {
+            cmd: 'A',
+            v: [innerRadius, innerRadius, 0, 1, 0, outerRadius, radiusDelta]
+          }, {
+            cmd: 'z'
+          });
+        }
+
+        instructions.push({
+          cmd: 'z'
+        });
+      }
+      else {
+        var sAng = utils.toRadians(startAngle - 90);
+        var eAng = utils.toRadians(endAngle - 90);
+
+        var aX1 = Math.cos(sAng);
+        var aX2 = Math.cos(eAng);
+        var aY1 = Math.sin(sAng);
+        var aY2 = Math.sin(eAng);
+
+        var dir = (angleDelta < 180) && (angleDelta > -180) ? 0 : 1;
+        var sweep = (angleDelta > 0);
+
+        var modInnerRadius = radiusDelta + innerRadius;
+        instructions.push({
+          cmd: 'M',
+          v: [modInnerRadius + innerRadius * aX1, modInnerRadius + innerRadius * aY1]
+        }, {
+          cmd: 'A',
+          v: [innerRadius, innerRadius, 0, dir, +(sweep), modInnerRadius + innerRadius * aX2, modInnerRadius + innerRadius * aY2]
+        }, {
+          cmd: 'L',
+          v: [outerRadius + outerRadius * aX2, outerRadius + outerRadius * aY2]
+        }, {
+          cmd: 'A',
+          v: [outerRadius, outerRadius, 0, dir, +(!sweep), outerRadius + outerRadius * aX1, outerRadius + outerRadius * aY1]
+        }, {
+          cmd: 'z'
+        });
+      }
+
+      return instructions;
+    },
+
     getBoundsFromCoords: function (coords) {
       var x1 = Math.pow(10, 9);
       var x2 = 0;
@@ -6924,7 +6997,7 @@ function (_) {
       var shape = [];
       var angle = utils.TWO_PI / edges;
       var fifthAngle = angle / 5;
-      apex = (utils.checkNumber(apex)) ? apex : 0;
+      apex = apex || 0;
       apex *= fifthAngle;
 
       for (var i = 0; i < utils.TWO_PI; i += angle) {
@@ -7585,7 +7658,7 @@ function (_, utils, Core) {
 
     this.values({
       domClass: (utils.checkValid(domClass)) ? domClass : type,
-      domId: (utils.checkValid(domId)) ? domId: this.id(),
+      domId: (utils.checkValid(domId)) ? domId : this.id(),
       node: (type === 'use') ? utils.createSvgUseNode(cloneId) : utils.createSvgNode(type),
       type: type
     });
