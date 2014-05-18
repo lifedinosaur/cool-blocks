@@ -1,7 +1,7 @@
 #Cool Blocks
 ## The little SVG renderer that could
 
-Cool Blocks is an SVG drawing and rendering library combining Greensock's [TweenLite] and [plugins] with good old fashioned elbow grease. And maybe a little more than its fair share of [Lo-Dash].
+Cool Blocks is an SVG drawing and rendering library combining Greensock's [TweenLite] and [plugins] with good old-fashioned elbow grease. And maybe a little more than its fair share of [Lo-Dash].
 ###What you get
   - Unfinished and half-baked ideas
   - Code that is not at all optimized
