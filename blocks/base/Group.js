@@ -34,12 +34,13 @@ function (_, utils, Block, Node) {
     _calculateBounds: function () {
       Block.prototype._calculateBounds.call(this);
 
-      if (this.values('anchorMode') === utils.ANCHOR_MODE.AUTO) {
-        this.values('rect').setAttributes({
-          height: this.values('height'),
-          width: this.values('width')
-        });
-      }
+      var bounds = this.values('bounds');
+      this.values('rect').setAttributes({
+        height: bounds[3],
+        width: bounds[2],
+        x: bounds[0],
+        y: bounds[1]
+      });
     },
 
     destroy: function () {

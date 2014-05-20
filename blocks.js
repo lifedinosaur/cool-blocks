@@ -6872,6 +6872,16 @@ function (_) {
       return (!_.isUndefined(value) && !_.isNaN(value) && !_.isNull(value));
     },
 
+    combineInstructions: function() {
+      var target = [];
+      var sources = target.concat.apply([], arguments);
+      _.forEach(sources, function (source) {
+        target.push(source);
+      });
+
+      return target;
+    },
+
     createSvgNode: function (type) {
       var node = document.createElementNS(utils.SVG_NS, type);
       return node;
@@ -6888,6 +6898,63 @@ function (_) {
       node.setAttributeNS(utils.SVGLINK_NS, 'xlink:href', ('#' + id));
 
       return node;
+    },
+
+    getBezierLine: function (cX1, cY1, cX2, cY2, x2, y2, x1, y1, start, close) {
+      if (_.isUndefined(x1) && _.isUndefined(y1)) {
+        start = false;
+      }
+      else {
+        start = utils.checkBoolean(start) ? start : true;
+      }
+      close = utils.checkBoolean(close) ? close : false;
+
+      var instructions = [];
+      if (start) {
+        instructions.push({
+          cmd: 'M',
+          v: [x1, y1]
+        });
+      }
+      // C x1 y1, x2 y2, x y
+      instructions.push({
+        cmd: 'C',
+        v: [cX1, cY1, ',', cX2, cY2, ',', x2, y2]
+      });
+      if (close) {
+        instructions.push({
+          cmd: 'Z'
+        });
+      }
+
+      return instructions;
+    },
+
+    getArcLine: function (x2, y2, x1, y1, arcDir, start, close) {
+      arcDir = utils.checkNumber(arcDir) ? arcDir : 1;
+      start = utils.checkBoolean(start) ? start : true;
+      close = utils.checkBoolean(close) ? close : false;
+
+      var distRadius = (Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2))) / 2;
+
+      var instructions = [];
+      if (start) {
+        instructions.push({
+          cmd: 'M',
+          v: [x1, y1]
+        });
+      }
+      instructions.push({
+        cmd: 'A',
+        v: [distRadius, distRadius, 0, 1, arcDir, x2, y2]
+      });
+      if (close) {
+        instructions.push({
+          cmd: 'Z'
+        });
+      }
+
+      return instructions;
     },
 
     getArcSolid: function (startAngle, endAngle, outerRadius, innerRadius) {
@@ -6922,12 +6989,12 @@ function (_) {
             cmd: 'A',
             v: [innerRadius, innerRadius, 0, 1, 0, outerRadius, radiusDelta]
           }, {
-            cmd: 'z'
+            cmd: 'Z'
           });
         }
 
         instructions.push({
-          cmd: 'z'
+          cmd: 'Z'
         });
       }
       else {
@@ -6956,7 +7023,7 @@ function (_) {
           cmd: 'A',
           v: [outerRadius, outerRadius, 0, dir, +(!sweep), outerRadius + outerRadius * aX1, outerRadius + outerRadius * aY1]
         }, {
-          cmd: 'z'
+          cmd: 'Z'
         });
       }
 
@@ -7028,11 +7095,14 @@ function (_) {
       return shape;
     },
 
-    getInstructionsFrom1DCoords: function (coords) {
+    getInstructionsFrom1DCoords: function (coords, start, close) {
+      start = utils.checkBoolean(start) ? start : true;
+      close = utils.checkBoolean(close) ? close : true;
+
       var instructions = [];
       _.forEach(coords, function (coord, i) {
         var cmd = 'L';
-        if (i === 0) {
+        if (i === 0 && start) {
           cmd = 'M';
         }
         instructions.push({
@@ -7040,9 +7110,11 @@ function (_) {
           v: [coord[0], coord[1]]
         });
       });
-      instructions.push({
-        cmd: 'z'
-      });
+      if (close) {
+        instructions.push({
+          cmd: 'Z'
+        });
+      }
 
       return instructions;
     },
@@ -7050,9 +7122,9 @@ function (_) {
     getInstructionsFrom2DCoords: function (coords) {
       var instructions = [];
       _.forEach(coords, function (set) {
-        _.forEach(set, function (coord, ii) {
+        _.forEach(set, function (coord, i) {
           var cmd = 'L';
-          if (ii === 0) {
+          if (i === 0) {
             cmd = 'M';
           }
           instructions.push({
@@ -7061,12 +7133,41 @@ function (_) {
           });
         });
         instructions.push({
-          cmd: 'z'
+          cmd: 'Z'
         });
       });
       instructions.push({
-        cmd: 'z'
+        cmd: 'Z'
       });
+
+      return instructions;
+    },
+
+    getLine: function (x2, y2, x1, y1, start, close) {
+      if (_.isUndefined(x1) && _.isUndefined(y1)) {
+        start = false;
+      }
+      else {
+        start = utils.checkBoolean(start) ? start : true;
+      }
+      close = utils.checkBoolean(close) ? close : false;
+
+      var instructions = [];
+      if (start) {
+        instructions.push({
+          cmd: 'M',
+          v: [x1, y1]
+        });
+      }
+      instructions.push({
+        cmd: 'L',
+        v: [x2, y2]
+      });
+      if (close) {
+        instructions.push({
+          cmd: 'Z'
+        });
+      }
 
       return instructions;
     },
@@ -7263,10 +7364,21 @@ function (_) {
 
     writeSvgPath: function (instructions) {
       var path = '';
-      _.forEach(instructions, function (instruction) {
+      _.forEach(instructions, function (instruction, i) {
+        if (i !== 0) {
+          path += ' ';
+        }
         path += instruction.cmd;
-        _.forEach(instruction.v, function (val) {
-          path += utils.roundTo(val, ROUND_PRECISION) + ' ';
+        _.forEach(instruction.v, function (val, ii) {
+          if (utils.checkNumber(val)) {
+            if (ii !== 0) {
+              path += ' ';
+            }
+            path += utils.roundTo(val, ROUND_PRECISION);
+          }
+          else {
+            path += val;
+          }
         });
       });
 
@@ -7795,6 +7907,7 @@ function (_, utils, Core, List, Node) {
       anchorMode: utils.ANCHOR_MODE.AUTO,
       anchorX: 0,
       anchorY: 0,
+      bounds: [0, 0, 0, 0],
       children: null,
       constructorName: 'Block',
       currentTarget: null,
@@ -7920,38 +8033,49 @@ function (_, utils, Core, List, Node) {
     _calculateBounds: function () {
       var height = 0;
       var width = 0;
+      var x = 0;
+      var y = 0;
 
       if (this.numChildren() === 0) {
         var bbox = this.values('node').getBBox();
         height = bbox.height;
         width = bbox.width;
+        x = bbox.x;
+        y = bbox.y;
       }
       else {
         var x1 = Math.pow(10, 9);
-        var x2 = 0;
+        var x2 = Math.pow(10, -9);
         var y1 = Math.pow(10, 9);
-        var y2 = 0;
+        var y2 = Math.pow(10, -9);
 
         _.forEach(this.getChildren(), function (child) {
-          if (child.values('x') < x1) {
-            x1 = child.values('x');
+          var bounds = child.values('bounds');
+          var childX = child.values('x') + bounds[0];
+          var childY = child.values('y') + bounds[1];
+
+          if (childX < x1) {
+            x1 = childX;
           }
-          if (child.values('x') + child.values('width') > x2) {
-            x2 = child.values('x') + child.values('width');
+          if (childX + bounds[2] > x2) {
+            x2 = childX + bounds[2];
           }
-          if (child.values('y') < y1) {
-            y1 = child.values('y');
+          if (childY < y1) {
+            y1 = childY;
           }
-          if (child.values('y') + child.values('height') > y2) {
-            y2 = child.values('y') + child.values('height');
+          if (childY + bounds[3] > y2) {
+            y2 = childY + bounds[3];
           }
         }, this);
 
         height = y2 - y1;
         width = x2 - x1;
+        x = x1;
+        y = y1;
       }
 
       this.values({
+        bounds: [x, y, width, height],
         height: height * this.values('scale'),
         width: width * this.values('scale')
       });
@@ -8287,12 +8411,13 @@ function (_, utils, Block, Node) {
     _calculateBounds: function () {
       Block.prototype._calculateBounds.call(this);
 
-      if (this.values('anchorMode') === utils.ANCHOR_MODE.AUTO) {
-        this.values('rect').setAttributes({
-          height: this.values('height'),
-          width: this.values('width')
-        });
-      }
+      var bounds = this.values('bounds');
+      this.values('rect').setAttributes({
+        height: bounds[3],
+        width: bounds[2],
+        x: bounds[0],
+        y: bounds[1]
+      });
     },
 
     destroy: function () {
@@ -8479,7 +8604,9 @@ function (_, utils, Block, Node) {
       container: container,
       defs: new Node('defs', 'stage-defs', 'stage-defs')
     });
+
     this.values('defs').appendTo(this.values('node'));
+    this.getNode().style.visibility = 'hidden';
     this.values('node').appendTo(container);  // add stage svg node to container
   }
 
@@ -8494,7 +8621,8 @@ function (_, utils, Block, Node) {
       defs: null,
       id: 'stage',
       onStage: true,
-      nodeType: 'svg'
+      nodeType: 'svg',
+      preframe: false
     }, Block.prototype._defaults),
 
 
@@ -8513,6 +8641,17 @@ function (_, utils, Block, Node) {
       });
 
       return Block.prototype.destroy.call(this);
+    },
+
+    render: function () {
+      Block.prototype.render.call(this);
+
+      if (!this.values('preframe') && this.getNode().style.visibility === 'hidden') {
+        this.getNode().style.visibility = 'visible';
+      }
+      this.values('preframe', false);
+
+      return this;
     }
   });
 

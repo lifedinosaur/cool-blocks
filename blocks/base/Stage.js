@@ -20,7 +20,9 @@ function (_, utils, Block, Node) {
       container: container,
       defs: new Node('defs', 'stage-defs', 'stage-defs')
     });
+
     this.values('defs').appendTo(this.values('node'));
+    this.getNode().style.visibility = 'hidden';
     this.values('node').appendTo(container);  // add stage svg node to container
   }
 
@@ -35,7 +37,8 @@ function (_, utils, Block, Node) {
       defs: null,
       id: 'stage',
       onStage: true,
-      nodeType: 'svg'
+      nodeType: 'svg',
+      preframe: false
     }, Block.prototype._defaults),
 
 
@@ -54,6 +57,17 @@ function (_, utils, Block, Node) {
       });
 
       return Block.prototype.destroy.call(this);
+    },
+
+    render: function () {
+      Block.prototype.render.call(this);
+
+      if (!this.values('preframe') && this.getNode().style.visibility === 'hidden') {
+        this.getNode().style.visibility = 'visible';
+      }
+      this.values('preframe', false);
+
+      return this;
     }
   });
 

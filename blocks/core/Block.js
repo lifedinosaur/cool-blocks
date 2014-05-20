@@ -30,6 +30,7 @@ function (_, utils, Core, List, Node) {
       anchorMode: utils.ANCHOR_MODE.AUTO,
       anchorX: 0,
       anchorY: 0,
+      bounds: [0, 0, 0, 0],
       children: null,
       constructorName: 'Block',
       currentTarget: null,
@@ -155,38 +156,49 @@ function (_, utils, Core, List, Node) {
     _calculateBounds: function () {
       var height = 0;
       var width = 0;
+      var x = 0;
+      var y = 0;
 
       if (this.numChildren() === 0) {
         var bbox = this.values('node').getBBox();
         height = bbox.height;
         width = bbox.width;
+        x = bbox.x;
+        y = bbox.y;
       }
       else {
         var x1 = Math.pow(10, 9);
-        var x2 = 0;
+        var x2 = Math.pow(10, -9);
         var y1 = Math.pow(10, 9);
-        var y2 = 0;
+        var y2 = Math.pow(10, -9);
 
         _.forEach(this.getChildren(), function (child) {
-          if (child.values('x') < x1) {
-            x1 = child.values('x');
+          var bounds = child.values('bounds');
+          var childX = child.values('x') + bounds[0];
+          var childY = child.values('y') + bounds[1];
+
+          if (childX < x1) {
+            x1 = childX;
           }
-          if (child.values('x') + child.values('width') > x2) {
-            x2 = child.values('x') + child.values('width');
+          if (childX + bounds[2] > x2) {
+            x2 = childX + bounds[2];
           }
-          if (child.values('y') < y1) {
-            y1 = child.values('y');
+          if (childY < y1) {
+            y1 = childY;
           }
-          if (child.values('y') + child.values('height') > y2) {
-            y2 = child.values('y') + child.values('height');
+          if (childY + bounds[3] > y2) {
+            y2 = childY + bounds[3];
           }
         }, this);
 
         height = y2 - y1;
         width = x2 - x1;
+        x = x1;
+        y = y1;
       }
 
       this.values({
+        bounds: [x, y, width, height],
         height: height * this.values('scale'),
         width: width * this.values('scale')
       });
