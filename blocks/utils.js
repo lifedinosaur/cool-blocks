@@ -86,6 +86,16 @@ function (_) {
       return (!_.isUndefined(value) && !_.isNaN(value) && !_.isNull(value));
     },
 
+    combineInstructions: function() {
+      var target = [];
+      var sources = target.concat.apply([], arguments);
+      _.forEach(sources, function (source) {
+        target.push(source);
+      });
+
+      return target;
+    },
+
     createSvgNode: function (type) {
       var node = document.createElementNS(utils.SVG_NS, type);
       return node;
@@ -102,6 +112,63 @@ function (_) {
       node.setAttributeNS(utils.SVGLINK_NS, 'xlink:href', ('#' + id));
 
       return node;
+    },
+
+    getBezierLine: function (cX1, cY1, cX2, cY2, x2, y2, x1, y1, start, close) {
+      if (_.isUndefined(x1) && _.isUndefined(y1)) {
+        start = false;
+      }
+      else {
+        start = utils.checkBoolean(start) ? start : true;
+      }
+      close = utils.checkBoolean(close) ? close : false;
+
+      var instructions = [];
+      if (start) {
+        instructions.push({
+          cmd: 'M',
+          v: [x1, y1]
+        });
+      }
+      // C x1 y1, x2 y2, x y
+      instructions.push({
+        cmd: 'C',
+        v: [cX1, cY1, ',', cX2, cY2, ',', x2, y2]
+      });
+      if (close) {
+        instructions.push({
+          cmd: 'Z'
+        });
+      }
+
+      return instructions;
+    },
+
+    getArcLine: function (x2, y2, x1, y1, arcDir, start, close) {
+      arcDir = utils.checkNumber(arcDir) ? arcDir : 1;
+      start = utils.checkBoolean(start) ? start : true;
+      close = utils.checkBoolean(close) ? close : false;
+
+      var distRadius = (Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2))) / 2;
+
+      var instructions = [];
+      if (start) {
+        instructions.push({
+          cmd: 'M',
+          v: [x1, y1]
+        });
+      }
+      instructions.push({
+        cmd: 'A',
+        v: [distRadius, distRadius, 0, 1, arcDir, x2, y2]
+      });
+      if (close) {
+        instructions.push({
+          cmd: 'Z'
+        });
+      }
+
+      return instructions;
     },
 
     getArcSolid: function (startAngle, endAngle, outerRadius, innerRadius) {
@@ -136,12 +203,12 @@ function (_) {
             cmd: 'A',
             v: [innerRadius, innerRadius, 0, 1, 0, outerRadius, radiusDelta]
           }, {
-            cmd: 'z'
+            cmd: 'Z'
           });
         }
 
         instructions.push({
-          cmd: 'z'
+          cmd: 'Z'
         });
       }
       else {
@@ -170,7 +237,7 @@ function (_) {
           cmd: 'A',
           v: [outerRadius, outerRadius, 0, dir, +(!sweep), outerRadius + outerRadius * aX1, outerRadius + outerRadius * aY1]
         }, {
-          cmd: 'z'
+          cmd: 'Z'
         });
       }
 
@@ -242,11 +309,14 @@ function (_) {
       return shape;
     },
 
-    getInstructionsFrom1DCoords: function (coords) {
+    getInstructionsFrom1DCoords: function (coords, start, close) {
+      start = utils.checkBoolean(start) ? start : true;
+      close = utils.checkBoolean(close) ? close : true;
+
       var instructions = [];
       _.forEach(coords, function (coord, i) {
         var cmd = 'L';
-        if (i === 0) {
+        if (i === 0 && start) {
           cmd = 'M';
         }
         instructions.push({
@@ -254,9 +324,11 @@ function (_) {
           v: [coord[0], coord[1]]
         });
       });
-      instructions.push({
-        cmd: 'z'
-      });
+      if (close) {
+        instructions.push({
+          cmd: 'Z'
+        });
+      }
 
       return instructions;
     },
@@ -264,9 +336,9 @@ function (_) {
     getInstructionsFrom2DCoords: function (coords) {
       var instructions = [];
       _.forEach(coords, function (set) {
-        _.forEach(set, function (coord, ii) {
+        _.forEach(set, function (coord, i) {
           var cmd = 'L';
-          if (ii === 0) {
+          if (i === 0) {
             cmd = 'M';
           }
           instructions.push({
@@ -275,12 +347,41 @@ function (_) {
           });
         });
         instructions.push({
-          cmd: 'z'
+          cmd: 'Z'
         });
       });
       instructions.push({
-        cmd: 'z'
+        cmd: 'Z'
       });
+
+      return instructions;
+    },
+
+    getLine: function (x2, y2, x1, y1, start, close) {
+      if (_.isUndefined(x1) && _.isUndefined(y1)) {
+        start = false;
+      }
+      else {
+        start = utils.checkBoolean(start) ? start : true;
+      }
+      close = utils.checkBoolean(close) ? close : false;
+
+      var instructions = [];
+      if (start) {
+        instructions.push({
+          cmd: 'M',
+          v: [x1, y1]
+        });
+      }
+      instructions.push({
+        cmd: 'L',
+        v: [x2, y2]
+      });
+      if (close) {
+        instructions.push({
+          cmd: 'Z'
+        });
+      }
 
       return instructions;
     },
@@ -477,10 +578,21 @@ function (_) {
 
     writeSvgPath: function (instructions) {
       var path = '';
-      _.forEach(instructions, function (instruction) {
+      _.forEach(instructions, function (instruction, i) {
+        if (i !== 0) {
+          path += ' ';
+        }
         path += instruction.cmd;
-        _.forEach(instruction.v, function (val) {
-          path += utils.roundTo(val, ROUND_PRECISION) + ' ';
+        _.forEach(instruction.v, function (val, ii) {
+          if (utils.checkNumber(val)) {
+            if (ii !== 0) {
+              path += ' ';
+            }
+            path += utils.roundTo(val, ROUND_PRECISION);
+          }
+          else {
+            path += val;
+          }
         });
       });
 
