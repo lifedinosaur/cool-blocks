@@ -22,7 +22,6 @@ function (_, utils, Block, Node) {
     });
 
     this.values('defs').appendTo(this.values('node'));
-    this.getNode().style.visibility = 'hidden';
     this.values('node').appendTo(container);  // add stage svg node to container
   }
 
@@ -37,9 +36,11 @@ function (_, utils, Block, Node) {
       defs: null,
       id: 'stage',
       onStage: true,
-      nodeType: 'svg',
-      preframe: false
+      nodeType: 'svg'
     }, Block.prototype._defaults),
+
+    _preframe: false,
+    _preframeEnabled: false,
 
 
     _calculateBounds: function () {
@@ -59,13 +60,25 @@ function (_, utils, Block, Node) {
       return Block.prototype.destroy.call(this);
     },
 
+    enablePreframe: function () {
+      this._preframe = true;
+      this._preframeEnabled = true;
+    },
+
     render: function () {
+      if (this._preframeEnabled && this._preframe) {
+        this.getNode().style.visibility = 'hidden';
+      }
+
       Block.prototype.render.call(this);
 
-      if (!this.values('preframe') && this.getNode().style.visibility === 'hidden') {
-        this.getNode().style.visibility = 'visible';
+      if (this._preframeEnabled) {
+        if (!this._preframe && this.getNode().style.visibility === 'hidden') {
+          this.getNode().style.visibility = 'visible';
+          this._preframeEnabled = false;
+        }
+        this._preframe = false;
       }
-      this.values('preframe', false);
 
       return this;
     }
