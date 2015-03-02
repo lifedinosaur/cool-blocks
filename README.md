@@ -28,14 +28,16 @@ Make your files look like this now.
      +-- main.js
 ```
 
-Cool Blocks is an r.js optimized package of modules, but the library is not a module itself. To make the internal modules available to your scripts at launch, you must require blocks at the same time as your main.js.
+Cool Blocks is an r.js optimized package of modules, but the library is not a module itself. To make the internal modules available to your scripts at launch, you must require blocks before your main.js.
 ```html
 <!-- load require.js -->
 <script type="text/javascript" src="js/lib/require.js"></script>
 
 <!-- require blocks and main.js -->
 <script type="text/javascript">
-  require(['js/lib/blocks.min', 'js/main']);
+  require(['js/lib/blocks.min'], function () {
+    require(['js/main']);
+  });
 </script>
 ```
 
