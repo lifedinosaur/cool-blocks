@@ -22,7 +22,7 @@ function (_) {
       BLOCK: ['Block', 'Clone', 'Group', 'Path', 'Stage'],
       NODE: 'Node',
       STAGE: 'Stage',
-      SVG_NODES: ['defs', 'g', 'path', 'rect', 'svg', 'use']
+      SVG_NODES: ['defs', 'g', 'path', 'pattern', 'rect', 'svg', 'use']
     },
 
 
@@ -604,7 +604,7 @@ function (_) {
       _.each(rules, function (value, key) {
         transform += key + '(';
         _.each(value, function (v, i) {
-          transform += v;
+          transform += utils.roundTo(v, ROUND_PRECISION);
           if (i < value.length - 1) {
             transform += ',';
           }

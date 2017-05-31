@@ -26,16 +26,14 @@ function (_, utils, Core) {
 
     Core.call(this);
 
-    this.values({
-      domClass: (utils.checkValid(domClass)) ? domClass : type,
-      domId: (utils.checkValid(domId)) ? domId : this.id(),
-      node: (type === 'use') ? utils.createSvgUseNode(cloneId) : utils.createSvgNode(type),
-      type: type
-    });
+    this._v.domClass = (utils.checkValid(domClass)) ? domClass : type;
+    this._v.domElement = (type === 'use') ? utils.createSvgUseNode(cloneId) : utils.createSvgNode(type);
+    this._v.domId = (utils.checkValid(domId)) ? domId : this._v.id;
+    this._v.type = type;
 
     this.setAttributes({
-      id: this.values('domId'),
-      class: this.values('domClass')
+      id: this._v.domId,
+      class: this._v.domClass
     });
   }
 
@@ -47,23 +45,24 @@ function (_, utils, Core) {
       constructorName: 'Node',
       currentTarget: null,
       domClass: 'node',
+      domElement: null,
       domId: 'node',
       id: 'node',
-      node: null,
       type: 'node'
     }, Core.prototype._defaults),
 
 
     appendTo: function (target) {
       if (utils.checkBlocksNode(target)) {
-        target.getNode().appendChild(this.values('node'));
-        this.values('currentTarget', target);
+        target.getDomElement().appendChild(this._v.domElement);
+        this._v.currentTarget = target;
+
         return this;
       }
 
       if (utils.checkHTML(target)) {
-        target.appendChild(this.values('node'));
-        this.values('currentTarget', target);
+        target.appendChild(this._v.domElement);
+        this._v.currentTarget = target;
         return this;
       }
 
@@ -72,25 +71,23 @@ function (_, utils, Core) {
     },
 
     destroy: function () {
-      if (!_.isNull(this.values('currentTarget'))) {
-        this.detachFrom(this.values('currentTarget'));
+      if (!_.isNull(this._v.currentTarget)) {
+        this.detachFrom(this._v.currentTarget);
       }
-      this.values({
-        node: null
-      });
+      this._v.domElement = null;
       return Core.prototype.destroy.call(this);
     },
 
     detachFrom: function (target) {
       if (utils.checkBlocksNode(target)) {
-        target.getNode().removeChild(this.values('node'));
-        this.values('currentTarget', null);
+        target.getDomElement().removeChild(this._v.domElement);
+        this._v.currentTarget = null;
         return this;
       }
 
       if (utils.checkHTML(target)) {
-        target.removeChild(this.values('node'));
-        this.values('currentTarget', null);
+        target.removeChild(this._v.domElement);
+        this._v.currentTarget = null;
         return this;
       }
 
@@ -99,26 +96,30 @@ function (_, utils, Core) {
     },
 
     getBBox: function () {
-      return this.values('node').getBBox();
+      return this._v.domElement.getBBox();
     },
 
-    getNode: function () {
-      return this.values('node');
+    getDomElement: function () {
+      return this._v.domElement;
+    },
+
+    setAttribute: function (key, value) {
+      return this.setAttributes(key, value);
     },
 
     setAttributes: function (key, value) {
       if (utils.checkString(key)) {
         if (_.isUndefined(value)) {
-          return this.values('node').getAttribute(key);
+          return this._v.domElement.getAttribute(key);
         }
 
-        this.values('node').setAttribute(key, value);
+        this._v.domElement.setAttribute(key, value);
         return this;
       }
 
       if (_.isObject(key)) {
           _.forEach(key, function (v, k) {
-            this.values('node').setAttribute(k, v);
+            this._v.domElement.setAttribute(k, v);
           }, this);
 
           return this;

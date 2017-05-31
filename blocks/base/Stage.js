@@ -16,13 +16,11 @@ function (_, utils, Block, Node) {
 
     Block.call(this, domClass, domId);
 
-    this.values({
-      container: container,
-      defs: new Node('defs', 'stage-defs', 'stage-defs')
-    });
+    this._v.container = container;
+    this._v.defs = new Node('defs', 'stage-defs', 'stage-defs');
 
-    this.values('defs').appendTo(this.values('node'));
-    this.values('node').appendTo(container);  // add stage svg node to container
+    this._v.defs.appendTo(this._v.node);
+    this._v.node.appendTo(container);  // add stage svg node to container
   }
 
   Stage.prototype = _.create(Block.prototype, {
@@ -43,19 +41,22 @@ function (_, utils, Block, Node) {
     _preframeEnabled: false,
 
 
+    addDef: function (def) {
+      def.appendTo(this._v.defs);
+      def._v.active = true;
+      def._v.onStage = true;
+      def._v.parent = this;
+      def._v.root = this;
+    },
+
     _calculateBounds: function () {
-      this.values({
-        height: this.values('container').offsetHeight,
-        width: this.values('container').offsetWidth
-      });
+      this._v.height = this._v.container.offsetHeight;
+      this._v.width = this._v.container.offsetWidth;
     },
 
     destroy: function () {
-      this.values('defs').destroy();
-
-      this.values({
-        defs: null
-      });
+      this._v.defs.destroy();
+      this._v.defs = null;
 
       return Block.prototype.destroy.call(this);
     },
@@ -65,16 +66,24 @@ function (_, utils, Block, Node) {
       this._preframeEnabled = true;
     },
 
+    removeDef: function (def) {
+      def.detachFrom(this._v.defs);
+      def._v.active = false;
+      def._v.onStage = false;
+      def._v.parent = null;
+      def._v.root = null;
+    },
+
     render: function () {
       if (this._preframeEnabled && this._preframe) {
-        this.getNode().style.visibility = 'hidden';
+        this.getDomElement().style.visibility = 'hidden';
       }
 
       Block.prototype.render.call(this);
 
       if (this._preframeEnabled) {
-        if (!this._preframe && this.getNode().style.visibility === 'hidden') {
-          this.getNode().style.visibility = 'visible';
+        if (!this._preframe && this.getDomElement().style.visibility === 'hidden') {
+          this.getDomElement().style.visibility = 'visible';
           this._preframeEnabled = false;
         }
         this._preframe = false;

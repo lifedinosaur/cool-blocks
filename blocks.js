@@ -6808,7 +6808,7 @@ function (_) {
       BLOCK: ['Block', 'Clone', 'Group', 'Path', 'Stage'],
       NODE: 'Node',
       STAGE: 'Stage',
-      SVG_NODES: ['defs', 'g', 'path', 'rect', 'svg', 'use']
+      SVG_NODES: ['defs', 'g', 'path', 'pattern', 'rect', 'svg', 'use']
     },
 
 
@@ -7390,7 +7390,7 @@ function (_) {
       _.each(rules, function (value, key) {
         transform += key + '(';
         _.each(value, function (v, i) {
-          transform += v;
+          transform += utils.roundTo(v, ROUND_PRECISION);
           if (i < value.length - 1) {
             transform += ',';
           }
@@ -7419,15 +7419,13 @@ function (_, utils) {
   
 
   function Core() {
-    Object.call(this);
-
     this._v = _.defaults({
       id: _.uniqueId(this._defaults.id)
     }, this._defaults);
   }
 
 
-  Core.prototype = _.create(Object.prototype, {
+  Core.prototype = {
     'constructor': Core,
 
     _defaults: {
@@ -7440,12 +7438,8 @@ function (_, utils) {
       return this;
     },
 
-    id: function (newId) {
-      return this.values('id', newId);
-    },
-
     getConstructorName: function() {
-      return this.values('constructorName');
+      return this._v.constructorName;
     },
 
     values: function (key, value) {
@@ -7468,7 +7462,7 @@ function (_, utils) {
 
       return this._v;
     }
-  });
+  };
 
 
   return Core;
@@ -7491,7 +7485,7 @@ function (_, utils, Core) {
 
     Core.call(this);
 
-    this.values('tween', this._createTween(options));
+    this._v.tween = this._createTween(options);
   }
 
   Anim.prototype = _.create(Core.prototype, {
@@ -7508,31 +7502,30 @@ function (_, utils, Core) {
 
     _createTween: function (options) {
       var tweenOptions = this._createTweenOptions(options); // sets duration
-      return TweenLite.to(this.values(),
-        this.values('duration'), tweenOptions).pause(); // init paused
+      return TweenLite.to(this._v, this._v.duration, tweenOptions).pause(); // init paused
     },
 
     _createTweenOptions: function (options) {
-      var tweenValues = this.values('tweenValues');
+      var tweenValues = this._v.tweenValues;
       _.defaults(tweenValues, options); // blend into any existing values
 
       _.forEach(options, function (value, key) {
         if (_.isArray(value)) {
-          this.values(key, value[0]);
+          this._v[key] = value[0];
           tweenValues[key] = value[1];
         }
         else {
-          this.values(key, value);
+          this._v[key] = value;
         }
       }, this);
 
       var tweenOptions = {
-        ease: (this.values('ease')) ? this.values('ease') : Sine.easeInOut,
-        onComplete: this.values('onComplete'),
+        ease: (this._v.ease) ? this._v.ease : Sine.easeInOut,
+        onComplete: this._v.onComplete,
         onCompleteParams: [this],
-        onReverseComplete: this.values('onReverseComplete'),
+        onReverseComplete: this._v.onReverseComplete,
         onReverseCompleteParams: [this],
-        onUpdate: this.values('onUpdate'),
+        onUpdate: this._v.onUpdate,
         onUpdateParams: [this]
       };
 
@@ -7562,22 +7555,22 @@ function (_, utils, Core) {
     },
 
     pause: function () {
-      this.values('tween').pause();
+      this._v.tween.pause();
       return;
     },
 
     play: function () {
-      this.values('tween').play();
+      this._v.tween.play();
       return this;
     },
 
     restart: function () {
-      this.values('tween').restart();
+      this._v.tween.restart();
       return this;
     },
 
     reverse: function () {
-      this.values('tween').reverse();
+      this._v.tween.reverse();
       return this;
     }
   });
@@ -7597,15 +7590,13 @@ function (_, utils, Anim) {
   function BlockAnim(block, options) {
     Anim.call(this, options);
 
-    this.values({
-      block: block,
-      bindKeys: []
-    });
+    this._v.bindKeys = [];
+    this._v.block = block;
 
     _.forEach(options, function (value, key) {
-      if (!_.isUndefined(block.values(key))) {
-        this.values('bindKeys').push(key);
-        this.values(key, block.values(key));
+      if (!_.isUndefined(block._v[key])) {
+        this._v.bindKeys.push(key);
+        this._v[key] = block._v[key];
       }
     }, this);
   }
@@ -7628,19 +7619,19 @@ function (_, utils, Anim) {
     },
 
     destroy: function () {
-      this.values({
-        bindKeys: null,
-        block: null
-      });
+      this._v.bindKeys = null;
+      this._v.block = null;
+
       Anim.prototype.destroy.call(this);
     },
 
     _onUpdateInternal: function (self) {
-      _.forEach(self.values('bindKeys'), function (key) {
-        self.values('block').values(key, self.values(key));
+      _.forEach(self._v.bindKeys, function (key) {
+        self._v.block._v[key] = self._v[key];
       });
+      self._v.block.dirty(true);
 
-      var update = self.values('onUpdate');
+      var update = self._v.onUpdate;
       if(!_.isUndefined(update)) {
         update(self);
       }
@@ -7662,7 +7653,7 @@ function (_, utils, Core) {
   function List() {
     Core.call(this);
 
-    this.values('elements', {});
+    this._v.elements = {};
   }
 
 
@@ -7678,8 +7669,8 @@ function (_, utils, Core) {
 
     addElement: function (element) {
       if (utils.checkBlocksCore(element)) {
-        if (!this.hasElement(element) && element.id() !== this.id()) {
-          this.values('elements')[element.id()] = element;
+        if (!this.hasElement(element) && element._v.id !== this._v.id) {
+          this._v.elements[element._v.id] = element;
           return element;
         }
 
@@ -7692,38 +7683,38 @@ function (_, utils, Core) {
     },
 
     clear: function () {
-      this.values('elements', {});
+      this._v.elements = {};
     },
 
     destroy: function () {
-      this.values('elements', null);
+      this._v.elements = null;
       return Core.prototype.destroy.call(this);
     },
 
     getElements: function (key) {
       if (utils.checkString(key)) {
-        return this.values('elements')[key];
+        return this._v.elements[key];
       }
 
-      return this.values('elements');
+      return this._v.elements;
     },
 
     hasElement: function (element) {
       if (utils.checkBlocksCore(element)) {
-        return _.has(this.values('elements'), element.id());
+        return _.has(this._v.elements, element._v.id);
       }
 
-      return _.has(this.values('elements'), element);
+      return _.has(this._v.elements, element);
     },
 
     numElements: function () {
-      return _.size(this.values('elements'));
+      return _.size(this._v.elements);
     },
 
     removeElement: function (element) {
       if (utils.checkBlocksCore(element)) {
         if (this.hasElement(element)) {
-          delete this.values('elements')[element.id()];
+          delete this._v.elements[element._v.id];
           return element;
         }
 
@@ -7768,16 +7759,14 @@ function (_, utils, Core) {
 
     Core.call(this);
 
-    this.values({
-      domClass: (utils.checkValid(domClass)) ? domClass : type,
-      domId: (utils.checkValid(domId)) ? domId : this.id(),
-      node: (type === 'use') ? utils.createSvgUseNode(cloneId) : utils.createSvgNode(type),
-      type: type
-    });
+    this._v.domClass = (utils.checkValid(domClass)) ? domClass : type;
+    this._v.domElement = (type === 'use') ? utils.createSvgUseNode(cloneId) : utils.createSvgNode(type);
+    this._v.domId = (utils.checkValid(domId)) ? domId : this._v.id;
+    this._v.type = type;
 
     this.setAttributes({
-      id: this.values('domId'),
-      class: this.values('domClass')
+      id: this._v.domId,
+      class: this._v.domClass
     });
   }
 
@@ -7789,23 +7778,24 @@ function (_, utils, Core) {
       constructorName: 'Node',
       currentTarget: null,
       domClass: 'node',
+      domElement: null,
       domId: 'node',
       id: 'node',
-      node: null,
       type: 'node'
     }, Core.prototype._defaults),
 
 
     appendTo: function (target) {
       if (utils.checkBlocksNode(target)) {
-        target.getNode().appendChild(this.values('node'));
-        this.values('currentTarget', target);
+        target.getDomElement().appendChild(this._v.domElement);
+        this._v.currentTarget = target;
+
         return this;
       }
 
       if (utils.checkHTML(target)) {
-        target.appendChild(this.values('node'));
-        this.values('currentTarget', target);
+        target.appendChild(this._v.domElement);
+        this._v.currentTarget = target;
         return this;
       }
 
@@ -7814,25 +7804,23 @@ function (_, utils, Core) {
     },
 
     destroy: function () {
-      if (!_.isNull(this.values('currentTarget'))) {
-        this.detachFrom(this.values('currentTarget'));
+      if (!_.isNull(this._v.currentTarget)) {
+        this.detachFrom(this._v.currentTarget);
       }
-      this.values({
-        node: null
-      });
+      this._v.domElement = null;
       return Core.prototype.destroy.call(this);
     },
 
     detachFrom: function (target) {
       if (utils.checkBlocksNode(target)) {
-        target.getNode().removeChild(this.values('node'));
-        this.values('currentTarget', null);
+        target.getDomElement().removeChild(this._v.domElement);
+        this._v.currentTarget = null;
         return this;
       }
 
       if (utils.checkHTML(target)) {
-        target.removeChild(this.values('node'));
-        this.values('currentTarget', null);
+        target.removeChild(this._v.domElement);
+        this._v.currentTarget = null;
         return this;
       }
 
@@ -7841,26 +7829,30 @@ function (_, utils, Core) {
     },
 
     getBBox: function () {
-      return this.values('node').getBBox();
+      return this._v.domElement.getBBox();
     },
 
-    getNode: function () {
-      return this.values('node');
+    getDomElement: function () {
+      return this._v.domElement;
+    },
+
+    setAttribute: function (key, value) {
+      return this.setAttributes(key, value);
     },
 
     setAttributes: function (key, value) {
       if (utils.checkString(key)) {
         if (_.isUndefined(value)) {
-          return this.values('node').getAttribute(key);
+          return this._v.domElement.getAttribute(key);
         }
 
-        this.values('node').setAttribute(key, value);
+        this._v.domElement.setAttribute(key, value);
         return this;
       }
 
       if (_.isObject(key)) {
           _.forEach(key, function (v, k) {
-            this.values('node').setAttribute(k, v);
+            this._v.domElement.setAttribute(k, v);
           }, this);
 
           return this;
@@ -7889,13 +7881,15 @@ function (_, utils, Core, List, Node) {
   function Block(domClass, domId) {
     Core.call(this);
 
-    this.values({
-      domClass: (utils.checkValid(domClass)) ? domClass : this._defaults.domClass,
-      domId: (utils.checkValid(domId)) ? domId: this.id()
-    });
+    this._v.domClass = (utils.checkValid(domClass)) ? domClass : this._defaults.domClass;
+    this._v.domId = (utils.checkValid(domId)) ? domId: this._v.id;
 
     if (this._defaults.nodeType !== 'use') {
-      this.values('node', new Node(this._defaults.nodeType, this.values('domClass'), this.values('domId')));
+      this._v.node = new Node(
+        this._defaults.nodeType,
+        this._v.domClass,
+        this._v.domId
+      );
     }
   }
 
@@ -7910,7 +7904,6 @@ function (_, utils, Core, List, Node) {
       bounds: [0, 0, 0, 0],
       children: null,
       constructorName: 'Block',
-      currentTarget: null,
       dirty: true,
       domClass: 'g',
       domId: 'g',
@@ -7948,27 +7941,26 @@ function (_, utils, Core, List, Node) {
 
 
     addChild: function (child) {
-      this.addChildren(child);
+      return this.addChildren(child);
     },
 
     addChildren: function () {
       var children = _.flatten(arguments);
 
-      if (_.isNull(this.values('children'))) {
-        this.values('children', new List()); // make a List
+      if (_.isNull(this._v.children)) {
+        this._v.children = new List(); // make a List
       }
 
       _.forEach(children, function (child) {
         if (utils.checkBlock(child)) {
-          if (child.id() !== this.id()) {
-            this.values('children').addElement(child);
-            child.values({
-              active: true,
-              parent: this,
-              root: utils.checkBlocksStage(this) ? this : this.values('root')
-            });
+          if (child._v.id !== this._v.id) {
+            this._v.children.addElement(child);
 
-            if (!_.isNull(child.values('root'))) {
+            child._v.active = true;
+            child._v.parent = this;
+            child._v.root = utils.checkBlocksStage(this) ? this : this._v.root;
+
+            if (!_.isNull(child._v.root)) {
               child._assignValueToChildren('root'); // pass root stage to all children
             }
 
@@ -7989,16 +7981,18 @@ function (_, utils, Core, List, Node) {
 
     anchor: function (x, y) {
       if (utils.checkNumber(x) && utils.checkNumber(y)) {
-        this.values({
-          anchorMode: utils.ANCHOR_MODE.MANUAL,
-          anchorX: x,
-          anchorY: y
-        });
+
+        this._v.anchorMode = utils.ANCHOR_MODE.MANUAL;
+        this._v.anchorX = x;
+        this._v.anchorY = y;
+
+        this.dirty(true);
+
         return this;
       }
 
       if (_.isUndefined(x)) {
-        return [this.values('anchorX'), this.values('anchorY')];
+        return [this._v.anchorX, this._v.anchorY];
       }
 
       console.error('Error: Could not set anchor.');
@@ -8007,8 +8001,7 @@ function (_, utils, Core, List, Node) {
 
     appendTo: function (target) {
       if (utils.checkBlocksNode(target)) {
-        this.values('node').appendTo(target);
-        this.values('currentTarget', target);
+        this._v.node.appendTo(target);
         return this;
       }
 
@@ -8018,15 +8011,16 @@ function (_, utils, Core, List, Node) {
 
     _assignValueToChildren: function (prop) {
       _.forEach(this.getChildren(), function (child) {
-        child.values(prop, this.values(prop));
+        child._v[prop] = this._v[prop];
+
         child._assignValueToChildren(prop);
       }, this);
     },
 
     _bindValuesToNodeAttributes: function () {
-      var attributes = _.pick(this.values(), this._bindAttributes);
+      var attributes = _.pick(this._v, this._bindAttributes);
       _.forEach(attributes, function (value, key) {
-        this.values('node').setAttributes(key, value);
+        this._v.node.setAttributes(key, value);
       }, this);
     },
 
@@ -8037,7 +8031,7 @@ function (_, utils, Core, List, Node) {
       var y = 0;
 
       if (this.numChildren() === 0) {
-        var bbox = this.values('node').getBBox();
+        var bbox = this._v.node.getBBox();
         height = bbox.height;
         width = bbox.width;
         x = bbox.x;
@@ -8050,9 +8044,9 @@ function (_, utils, Core, List, Node) {
         var y2 = Math.pow(10, -9);
 
         _.forEach(this.getChildren(), function (child) {
-          var bounds = child.values('bounds');
-          var childX = child.values('x') + bounds[0];
-          var childY = child.values('y') + bounds[1];
+          var bounds = child._v.bounds;
+          var childX = child._v.x + bounds[0];
+          var childY = child._v.y + bounds[1];
 
           if (childX < x1) {
             x1 = childX;
@@ -8074,24 +8068,19 @@ function (_, utils, Core, List, Node) {
         y = y1;
       }
 
-      this.values({
-        bounds: [x, y, width, height],
-        height: height * this.values('scale'),
-        width: width * this.values('scale')
-      });
+      this._v.bounds = [x, y, width, height];
+      this._v.height = height * this._v.scale;
+      this._v.width = width * this._v.scale;
 
-      if (this.values('anchorMode') === utils.ANCHOR_MODE.AUTO) {
-        this.values({
-          anchorX: width / 2,
-          anchorY: height / 2
-        });
+      if (this._v.anchorMode === utils.ANCHOR_MODE.AUTO) {
+        this._v.anchorX = width / 2;
+        this._v.anchorY = height / 2;
       }
     },
 
     detachFrom: function (target) {
       if (utils.checkBlocksNode(target)) {
-        this.values('node').detachFrom(target);
-        this.values('currentTarget', null);
+        this._v.node.detachFrom(target);
         return this;
       }
 
@@ -8100,19 +8089,17 @@ function (_, utils, Core, List, Node) {
     },
 
     destroy: function () {
-      this.values('node').destroy();
+      this._v.node.destroy();
 
-      if (!_.isNull(this.values('parent'))) {
-        this.values('parent').removeChildren(this);
+      if (!_.isNull(this._v.parent)) {
+        this._v.parent.removeChildren(this);
       }
 
       this.removeChildren();
 
-      this.values({
-        children: null,
-        node: null,
-        parent: null
-      });
+      this._v.children = null;
+      this._v.node = null;
+      this._v.parent = null;
 
       return Core.prototype.destroy.call(this);
     },
@@ -8121,8 +8108,8 @@ function (_, utils, Core, List, Node) {
       if (utils.checkBoolean(value)) {
         this._v.dirty = value;
 
-        if (value && this.values('parent') !== null) {
-          this.values('parent').dirty(true);
+        if (value && this._v.parent !== null) {
+          this._v.parent.dirty(true);
         }
       }
 
@@ -8130,87 +8117,86 @@ function (_, utils, Core, List, Node) {
     },
 
     _dropChild: function (child) {
-      this.values('children').removeElement(child);
-      child.values({
-        active: false,
-        parent: null,
-        onStage: false,
-        root: null
-      });
+      this._v.children.removeElement(child);
+
+      child._v.active = false;
+      child._v.parent = null;
+      child._v.onStage = false;
+      child._v.root = null;
     },
 
     getChildren: function (id) {
-      if (_.isNull(this.values('children'))) {
+      if (_.isNull(this._v.children)) {
         return null;
       }
 
       if (_.isString(id)) {
-        return this.values('children').getElements(id);
+        return this._v.children.getElements(id);
       }
 
-      return this.values('children').getElements();
+      return this._v.children.getElements();
     },
 
-    getNode: function () {
-      return this.values('node').getNode();
+    getDomElement: function () {
+      return this._v.node.getDomElement();
     },
 
     hasChild: function (child) {
-      if (_.isNull(this.values('children'))) {
+      if (_.isNull(this._v.children)) {
         return false;
       }
-      return this.values('children').hasChild(child);
+      return this._v.children.hasChild(child);
     },
 
     _hitTestRootBounds: function () {
-      var root = this.values('root');
+      var root = this._v.root;
 
-      var strokeSize = (this.values('stroke')) ?
-        this.values('stroke-width') * this.values('scale') : 0;
+      var strokeSize = (this._v.stroke) ?
+        this._v['stroke-width'] * this._v.scale : 0;
 
-      var aX = this.values('width') / 2;
-      var aY = this.values('height') / 2;
+      var aX = this._v.width / 2;
+      var aY = this._v.height / 2;
 
-      var x1 = this.values('globalX') - aX - strokeSize;
-      var x2 = this.values('globalX') + aX;
-      var y1 = this.values('globalY') - aY - strokeSize;
-      var y2 = this.values('globalY') + aY;
+      var x1 = this._v.globalX - aX - strokeSize;
+      var x2 = this._v.globalX + aX;
+      var y1 = this._v.globalY - aY - strokeSize;
+      var y2 = this._v.globalY + aY;
 
-      var px1 = root.values('x');
-      var px2 = root.values('x') + root.values('width');
-      var py1 = root.values('y');
-      var py2 = root.values('y') + root.values('height');
+      var px1 = root._v.x;
+      var px2 = root._v.x + root._v.width;
+      var py1 = root._v.y;
+      var py2 = root._v.y + root._v.height;
 
       if (x1 > px2 || x2 < px1 || y1 > py2 || y2 < py1) {
-        this.values('visible', false);
+        this._v.visible = false;
       }
       else {
-        this.values('visible', true);
+        this._v.visible = true;
       }
     },
 
     numChildren: function () {
-      if (_.isNull(this.values('children'))) {
+      if (_.isNull(this._v.children)) {
         return 0;
       }
-      return this.values('children').numElements();
+      return this._v.children.numElements();
     },
 
     _preRender: function () {
-      if (_.isNull(this.values('children'))) {
+      if (_.isNull(this._v.children)) {
         return;
       }
 
       // add or remove children from render node:
       _.forEach(this.getChildren(), function (child) {
-        if (child.values('active') && !child.values('onStage')) {
-          child.appendTo(this.values('node'));
-          child.values('onStage', true);
+        if (child._v.active && !child._v.onStage) {
+          child.appendTo(this._v.node);
+          child._v.onStage = true;
         }
-        else if (!child.values('active') && child.values('onStage')) {
-          child.detachFrom(this.values('node'));
-          child.values('onStage', false);
-          this.values('children').removeElement(child);
+        else if (!child._v.active && child._v.onStage) {
+          child.detachFrom(this._v.node);
+          child._v.onStage = false;
+          this._v.children.removeElement(child);
         }
       }, this);
     },
@@ -8218,7 +8204,7 @@ function (_, utils, Core, List, Node) {
     _postRender: function () {
       this._renderTransforms();
 
-      if (!_.isNull(this.values('parent'))) {
+      if (!_.isNull(this._v.parent)) {
         this._setGlobalXY();
         //this._hitTestRootBounds();
       }
@@ -8236,7 +8222,7 @@ function (_, utils, Core, List, Node) {
       if (arguments.length > 0) {
         _.forEach(children, function (child) {
           if (utils.checkBlock(child)) {
-            if (this.values('children').hasElement(child)) {
+            if (this._v.children.hasElement(child)) {
               this._dropChild(child);
               this.dirty(true);
             }
@@ -8263,11 +8249,11 @@ function (_, utils, Core, List, Node) {
     },
 
     render: function () {
-      if (this.values('active') && this.values('onStage')) {
+      if (this._v.active && this._v.onStage) {
         this._preRender();
 
-        if (this.values('visible') && this.values('dirty')) {
-          if (!_.isNull(this.values('children'))) {
+        if (this._v.visible && this._v.dirty) {
+          if (!_.isNull(this._v.children)) {
             _.forEachRight(this.getChildren(), function (child) {
               child.render();
             }, this);
@@ -8287,30 +8273,28 @@ function (_, utils, Core, List, Node) {
     },
 
     _renderTransforms: function () {
-      var newX = this.values('x');
-      var newY = this.values('y');
+      var newX = this._v.x;
+      var newY = this._v.y;
 
-      if (this.values('anchorMode') === utils.ANCHOR_MODE.AUTO) {
-        newX -= this.values('width') / 2;
-        newY -= this.values('height') / 2;
+      if (this._v.anchorMode === utils.ANCHOR_MODE.AUTO) {
+        newX -= this._v.width / 2;
+        newY -= this._v.height / 2;
       }
 
-      this.values('transform', utils.writeSvgTransform({
+      this._v.transform = utils.writeSvgTransform({
         'translate': [newX, newY],
-        'scale': [this.values('scale')],
-        'rotate': [this.values('rotate'), this.values('anchorX'), this.values('anchorY')]
-      }));
+        'scale': [this._v.scale],
+        'rotate': [this._v.rotate, this._v.anchorX, this._v.anchorY]
+      });
 
-      this.values('node').setAttributes('transform', this.values('transform'));
+      this._v.node.setAttributes('transform', this._v.transform);
     },
 
     _setGlobalXY: function () {
-      var parent = this.values('parent');
+      var parent = this._v.parent;
 
-      this.values({
-        globalX: parent.values('globalX') + this.values('x'),
-        globalY: parent.values('globalY') + this.values('y')
-      });
+      this._v.globalX = parent._v.globalX + this._v.x;
+      this._v.globalY = parent._v.globalY + this._v.y;
     },
 
     values: function (key, value) {
@@ -8349,9 +8333,7 @@ function (_, utils, Block, Node) {
   function Clone(model, domClass, domId) {
     Block.call(this, domClass, domId);
 
-    this.values('node', new Node(
-      this._defaults.nodeType, this.values('domClass'),
-      this.values('domId'), model.values('domId')));
+    this._v.node = new Node(this._defaults.nodeType, this._v.domClass, this._v.domId, model._v.domId);
   }
 
   Clone.prototype = _.create(Block.prototype, {
@@ -8367,7 +8349,7 @@ function (_, utils, Block, Node) {
     }, Block.prototype._defaults),
 
     detachFrom: function (target) {
-      this.values('allocated', false);
+      this._v.allocated = false;
       return Block.prototype.detachFrom.call(this, target);
     }
   });
@@ -8388,13 +8370,11 @@ function (_, utils, Block, Node) {
   function Group(domClass, domId) {
     Block.call(this, domClass, domId);
 
-    this.values('rect',
-      new Node('rect', 'control-rect', this.id() + '-control-rect')
-        .setAttributes({
-          fill: 'transparent'
-        })
-        .appendTo(this.values('node'))
-    );
+    this._v.rect = new Node('rect', 'control-rect', this._v.id + '-control-rect')
+      .setAttributes({
+        fill: 'transparent'
+      })
+      .appendTo(this._v.node);
   }
 
   Group.prototype = _.create(Block.prototype, {
@@ -8411,8 +8391,8 @@ function (_, utils, Block, Node) {
     _calculateBounds: function () {
       Block.prototype._calculateBounds.call(this);
 
-      var bounds = this.values('bounds');
-      this.values('rect').setAttributes({
+      var bounds = this._v.bounds;
+      this._v.rect.setAttributes({
         height: bounds[3],
         width: bounds[2],
         x: bounds[0],
@@ -8421,11 +8401,8 @@ function (_, utils, Block, Node) {
     },
 
     destroy: function () {
-      this.values('rect').destroy();
-
-      this.values({
-        rect: null
-      });
+      this._v.rect.destroy();
+      this._v.rect = null;
 
       return Block.prototype.destroy.call(this);
     }
@@ -8464,13 +8441,68 @@ function (_, utils, Block) {
 
     _dirtyAttributes: _.union(['d'], Block.prototype._dirtyAttributes),
 
+
     drawPath: function (instructions) {
-      this.values('d', utils.writeSvgPath(instructions));
+      this._v.d = utils.writeSvgPath(instructions);
+      this.dirty(true);
       return this;
     }
   });
 
   return Path;
+});
+
+define(
+'base/Pattern',[
+  'lodash',
+  'utils',
+  'core/Block',
+  'core/Node'
+],
+function (_, utils, Block, Node) {
+  
+
+  function Pattern(domClass, domId) {
+    Block.call(this, domClass, domId);
+
+    this._v.node = new Node(this._defaults.nodeType, this._v.domClass, this._v.domId);
+    this._v.node.setAttributes({
+      patternUnits: 'userSpaceOnUse'
+    });
+  }
+
+  Pattern.prototype = _.create(Block.prototype, {
+    'constructor': Pattern,
+
+    _defaults: _.defaults({
+      anchorMode: utils.ANCHOR_MODE.MANUAL,
+      constructorName: 'Pattern',
+      domClass: 'pattern',
+      domId: 'pattern',
+      id: 'pattern',
+      nodeType: 'pattern'
+    }, Block.prototype._defaults),
+
+
+    fill: function () {
+      return 'url(#' + this._v.domId + ')';
+    },
+
+    render: function () {
+      Block.prototype.render.call(this);
+
+      this._v.node.setAttributes({
+        height: this._v.height,
+        width: this._v.width,
+        x: this._v.x,
+        y: this._v.y
+      });
+
+      return this;
+    }
+  });
+
+  return Pattern;
 });
 
 define(
@@ -8495,22 +8527,15 @@ function (_, utils, Core, Clone) {
 
     Core.call(this);
 
-    this.values({
-      clones: [],
-      model: model,
-      size: (utils.checkNumber(size)) ? size : this._defaults.size,
-      stage: stage
-    });
+    this._v.clones = [];
+    this._v.model = model;
+    this._v.size = (utils.checkNumber(size)) ? size : this._defaults.size;
+    this._v.stage = stage;
 
-    model
-      .values({
-        active: true,
-        onStage: true
-      })
-      .appendTo(stage.values('defs'))
-      .render();
+    stage.addDef(model);
+    model.render();
 
-    for (var i = 0, ii = this.values('size'); i < ii; i++) {
+    for (var i = 0, ii = this._v.size; i < ii; i++) {
       this._createClone();
     }
   }
@@ -8523,37 +8548,31 @@ function (_, utils, Core, Clone) {
       constructorName: 'Pool',
       id: 'pool',
       model: null,
+      onStage: false,
       size: 10,
       stage: null
     }, Core.prototype._defaults),
 
-    _createClone: function () {
-      var clone = new Clone(this.values('model'));
-      this.values('clones').push(clone);
 
-      if (this.values('size') < this.values('clones').length) {
-        this.values('size', this.values('clones'.length));
+    _createClone: function () {
+      var clone = new Clone(this._v.model);
+      this._v.clones.push(clone);
+
+      if (this._v.size < this._v.clones.length) {
+        this._v.size = this._v.clones.length;
       }
 
       return clone;
     },
 
     destroy: function () {
-      _.forEachRight(this.values('clones'), function (clone) {
+      _.forEachRight(this._v.clones, function (clone) {
         clone.destroy();
         clone = null;
       }, this);
+      this._v.clones = null;
 
-      this.values('model')
-        .values({
-          active: false,
-          onStage: false
-        })
-        .detachFrom(this.values('stage').values('defs'));
-
-      this.values({
-        clones: null
-      });
+      this._v.stage.removeDef(this._v.model);
 
       return Core.prototype.destroy.call(this);
     },
@@ -8561,9 +8580,9 @@ function (_, utils, Core, Clone) {
     getFirstAvailable: function () {
       var first = null;
 
-      _.forEachRight(this.values('clones'), function (clone) {
-        if (!clone.values('allocated')) {
-          clone.values('allocated', true);
+      _.forEachRight(this._v.clones, function (clone) {
+        if (!clone._v.allocated) {
+          clone._v.allocated = true;
           first = clone;
           return false;
         }
@@ -8573,7 +8592,8 @@ function (_, utils, Core, Clone) {
         return first;
       }
 
-      first = this._createClone().values('allocated', true);
+      first = this._createClone();
+      first._v.allocated = true;
       return first;
     }
   });
@@ -8600,13 +8620,11 @@ function (_, utils, Block, Node) {
 
     Block.call(this, domClass, domId);
 
-    this.values({
-      container: container,
-      defs: new Node('defs', 'stage-defs', 'stage-defs')
-    });
+    this._v.container = container;
+    this._v.defs = new Node('defs', 'stage-defs', 'stage-defs');
 
-    this.values('defs').appendTo(this.values('node'));
-    this.values('node').appendTo(container);  // add stage svg node to container
+    this._v.defs.appendTo(this._v.node);
+    this._v.node.appendTo(container);  // add stage svg node to container
   }
 
   Stage.prototype = _.create(Block.prototype, {
@@ -8627,19 +8645,22 @@ function (_, utils, Block, Node) {
     _preframeEnabled: false,
 
 
+    addDef: function (def) {
+      def.appendTo(this._v.defs);
+      def._v.active = true;
+      def._v.onStage = true;
+      def._v.parent = this;
+      def._v.root = this;
+    },
+
     _calculateBounds: function () {
-      this.values({
-        height: this.values('container').offsetHeight,
-        width: this.values('container').offsetWidth
-      });
+      this._v.height = this._v.container.offsetHeight;
+      this._v.width = this._v.container.offsetWidth;
     },
 
     destroy: function () {
-      this.values('defs').destroy();
-
-      this.values({
-        defs: null
-      });
+      this._v.defs.destroy();
+      this._v.defs = null;
 
       return Block.prototype.destroy.call(this);
     },
@@ -8649,16 +8670,24 @@ function (_, utils, Block, Node) {
       this._preframeEnabled = true;
     },
 
+    removeDef: function (def) {
+      def.detachFrom(this._v.defs);
+      def._v.active = false;
+      def._v.onStage = false;
+      def._v.parent = null;
+      def._v.root = null;
+    },
+
     render: function () {
       if (this._preframeEnabled && this._preframe) {
-        this.getNode().style.visibility = 'hidden';
+        this.getDomElement().style.visibility = 'hidden';
       }
 
       Block.prototype.render.call(this);
 
       if (this._preframeEnabled) {
-        if (!this._preframe && this.getNode().style.visibility === 'hidden') {
-          this.getNode().style.visibility = 'visible';
+        if (!this._preframe && this.getDomElement().style.visibility === 'hidden') {
+          this.getDomElement().style.visibility = 'visible';
           this._preframeEnabled = false;
         }
         this._preframe = false;
@@ -10830,6 +10859,7 @@ define(
   'base/Clone',
   'base/Group',
   'base/Path',
+  'base/Pattern',
   'base/Pool',
   'base/Stage',
   'core/Block',
@@ -10855,6 +10885,7 @@ function () {
       Clone: require('base/Clone'),
       Group: require('base/Group'),
       Path: require('base/Path'),
+      Pattern: require('base/Pattern'),
       Pool: require('base/Pool'),
       Stage: require('base/Stage')
     },

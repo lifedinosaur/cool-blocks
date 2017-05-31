@@ -15,7 +15,7 @@ function (_, utils, Core) {
 
     Core.call(this);
 
-    this.values('tween', this._createTween(options));
+    this._v.tween = this._createTween(options);
   }
 
   Anim.prototype = _.create(Core.prototype, {
@@ -32,31 +32,30 @@ function (_, utils, Core) {
 
     _createTween: function (options) {
       var tweenOptions = this._createTweenOptions(options); // sets duration
-      return TweenLite.to(this.values(),
-        this.values('duration'), tweenOptions).pause(); // init paused
+      return TweenLite.to(this._v, this._v.duration, tweenOptions).pause(); // init paused
     },
 
     _createTweenOptions: function (options) {
-      var tweenValues = this.values('tweenValues');
+      var tweenValues = this._v.tweenValues;
       _.defaults(tweenValues, options); // blend into any existing values
 
       _.forEach(options, function (value, key) {
         if (_.isArray(value)) {
-          this.values(key, value[0]);
+          this._v[key] = value[0];
           tweenValues[key] = value[1];
         }
         else {
-          this.values(key, value);
+          this._v[key] = value;
         }
       }, this);
 
       var tweenOptions = {
-        ease: (this.values('ease')) ? this.values('ease') : Sine.easeInOut,
-        onComplete: this.values('onComplete'),
+        ease: (this._v.ease) ? this._v.ease : Sine.easeInOut,
+        onComplete: this._v.onComplete,
         onCompleteParams: [this],
-        onReverseComplete: this.values('onReverseComplete'),
+        onReverseComplete: this._v.onReverseComplete,
         onReverseCompleteParams: [this],
-        onUpdate: this.values('onUpdate'),
+        onUpdate: this._v.onUpdate,
         onUpdateParams: [this]
       };
 
@@ -86,22 +85,22 @@ function (_, utils, Core) {
     },
 
     pause: function () {
-      this.values('tween').pause();
+      this._v.tween.pause();
       return;
     },
 
     play: function () {
-      this.values('tween').play();
+      this._v.tween.play();
       return this;
     },
 
     restart: function () {
-      this.values('tween').restart();
+      this._v.tween.restart();
       return this;
     },
 
     reverse: function () {
-      this.values('tween').reverse();
+      this._v.tween.reverse();
       return this;
     }
   });

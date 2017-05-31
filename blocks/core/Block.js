@@ -12,13 +12,15 @@ function (_, utils, Core, List, Node) {
   function Block(domClass, domId) {
     Core.call(this);
 
-    this.values({
-      domClass: (utils.checkValid(domClass)) ? domClass : this._defaults.domClass,
-      domId: (utils.checkValid(domId)) ? domId: this.id()
-    });
+    this._v.domClass = (utils.checkValid(domClass)) ? domClass : this._defaults.domClass;
+    this._v.domId = (utils.checkValid(domId)) ? domId: this._v.id;
 
     if (this._defaults.nodeType !== 'use') {
-      this.values('node', new Node(this._defaults.nodeType, this.values('domClass'), this.values('domId')));
+      this._v.node = new Node(
+        this._defaults.nodeType,
+        this._v.domClass,
+        this._v.domId
+      );
     }
   }
 
@@ -33,7 +35,6 @@ function (_, utils, Core, List, Node) {
       bounds: [0, 0, 0, 0],
       children: null,
       constructorName: 'Block',
-      currentTarget: null,
       dirty: true,
       domClass: 'g',
       domId: 'g',
@@ -71,27 +72,26 @@ function (_, utils, Core, List, Node) {
 
 
     addChild: function (child) {
-      this.addChildren(child);
+      return this.addChildren(child);
     },
 
     addChildren: function () {
       var children = _.flatten(arguments);
 
-      if (_.isNull(this.values('children'))) {
-        this.values('children', new List()); // make a List
+      if (_.isNull(this._v.children)) {
+        this._v.children = new List(); // make a List
       }
 
       _.forEach(children, function (child) {
         if (utils.checkBlock(child)) {
-          if (child.id() !== this.id()) {
-            this.values('children').addElement(child);
-            child.values({
-              active: true,
-              parent: this,
-              root: utils.checkBlocksStage(this) ? this : this.values('root')
-            });
+          if (child._v.id !== this._v.id) {
+            this._v.children.addElement(child);
 
-            if (!_.isNull(child.values('root'))) {
+            child._v.active = true;
+            child._v.parent = this;
+            child._v.root = utils.checkBlocksStage(this) ? this : this._v.root;
+
+            if (!_.isNull(child._v.root)) {
               child._assignValueToChildren('root'); // pass root stage to all children
             }
 
@@ -112,16 +112,18 @@ function (_, utils, Core, List, Node) {
 
     anchor: function (x, y) {
       if (utils.checkNumber(x) && utils.checkNumber(y)) {
-        this.values({
-          anchorMode: utils.ANCHOR_MODE.MANUAL,
-          anchorX: x,
-          anchorY: y
-        });
+
+        this._v.anchorMode = utils.ANCHOR_MODE.MANUAL;
+        this._v.anchorX = x;
+        this._v.anchorY = y;
+
+        this.dirty(true);
+
         return this;
       }
 
       if (_.isUndefined(x)) {
-        return [this.values('anchorX'), this.values('anchorY')];
+        return [this._v.anchorX, this._v.anchorY];
       }
 
       console.error('Error: Could not set anchor.');
@@ -130,8 +132,7 @@ function (_, utils, Core, List, Node) {
 
     appendTo: function (target) {
       if (utils.checkBlocksNode(target)) {
-        this.values('node').appendTo(target);
-        this.values('currentTarget', target);
+        this._v.node.appendTo(target);
         return this;
       }
 
@@ -141,15 +142,16 @@ function (_, utils, Core, List, Node) {
 
     _assignValueToChildren: function (prop) {
       _.forEach(this.getChildren(), function (child) {
-        child.values(prop, this.values(prop));
+        child._v[prop] = this._v[prop];
+
         child._assignValueToChildren(prop);
       }, this);
     },
 
     _bindValuesToNodeAttributes: function () {
-      var attributes = _.pick(this.values(), this._bindAttributes);
+      var attributes = _.pick(this._v, this._bindAttributes);
       _.forEach(attributes, function (value, key) {
-        this.values('node').setAttributes(key, value);
+        this._v.node.setAttributes(key, value);
       }, this);
     },
 
@@ -160,7 +162,7 @@ function (_, utils, Core, List, Node) {
       var y = 0;
 
       if (this.numChildren() === 0) {
-        var bbox = this.values('node').getBBox();
+        var bbox = this._v.node.getBBox();
         height = bbox.height;
         width = bbox.width;
         x = bbox.x;
@@ -173,9 +175,9 @@ function (_, utils, Core, List, Node) {
         var y2 = Math.pow(10, -9);
 
         _.forEach(this.getChildren(), function (child) {
-          var bounds = child.values('bounds');
-          var childX = child.values('x') + bounds[0];
-          var childY = child.values('y') + bounds[1];
+          var bounds = child._v.bounds;
+          var childX = child._v.x + bounds[0];
+          var childY = child._v.y + bounds[1];
 
           if (childX < x1) {
             x1 = childX;
@@ -197,24 +199,19 @@ function (_, utils, Core, List, Node) {
         y = y1;
       }
 
-      this.values({
-        bounds: [x, y, width, height],
-        height: height * this.values('scale'),
-        width: width * this.values('scale')
-      });
+      this._v.bounds = [x, y, width, height];
+      this._v.height = height * this._v.scale;
+      this._v.width = width * this._v.scale;
 
-      if (this.values('anchorMode') === utils.ANCHOR_MODE.AUTO) {
-        this.values({
-          anchorX: width / 2,
-          anchorY: height / 2
-        });
+      if (this._v.anchorMode === utils.ANCHOR_MODE.AUTO) {
+        this._v.anchorX = width / 2;
+        this._v.anchorY = height / 2;
       }
     },
 
     detachFrom: function (target) {
       if (utils.checkBlocksNode(target)) {
-        this.values('node').detachFrom(target);
-        this.values('currentTarget', null);
+        this._v.node.detachFrom(target);
         return this;
       }
 
@@ -223,19 +220,17 @@ function (_, utils, Core, List, Node) {
     },
 
     destroy: function () {
-      this.values('node').destroy();
+      this._v.node.destroy();
 
-      if (!_.isNull(this.values('parent'))) {
-        this.values('parent').removeChildren(this);
+      if (!_.isNull(this._v.parent)) {
+        this._v.parent.removeChildren(this);
       }
 
       this.removeChildren();
 
-      this.values({
-        children: null,
-        node: null,
-        parent: null
-      });
+      this._v.children = null;
+      this._v.node = null;
+      this._v.parent = null;
 
       return Core.prototype.destroy.call(this);
     },
@@ -244,8 +239,8 @@ function (_, utils, Core, List, Node) {
       if (utils.checkBoolean(value)) {
         this._v.dirty = value;
 
-        if (value && this.values('parent') !== null) {
-          this.values('parent').dirty(true);
+        if (value && this._v.parent !== null) {
+          this._v.parent.dirty(true);
         }
       }
 
@@ -253,87 +248,86 @@ function (_, utils, Core, List, Node) {
     },
 
     _dropChild: function (child) {
-      this.values('children').removeElement(child);
-      child.values({
-        active: false,
-        parent: null,
-        onStage: false,
-        root: null
-      });
+      this._v.children.removeElement(child);
+
+      child._v.active = false;
+      child._v.parent = null;
+      child._v.onStage = false;
+      child._v.root = null;
     },
 
     getChildren: function (id) {
-      if (_.isNull(this.values('children'))) {
+      if (_.isNull(this._v.children)) {
         return null;
       }
 
       if (_.isString(id)) {
-        return this.values('children').getElements(id);
+        return this._v.children.getElements(id);
       }
 
-      return this.values('children').getElements();
+      return this._v.children.getElements();
     },
 
-    getNode: function () {
-      return this.values('node').getNode();
+    getDomElement: function () {
+      return this._v.node.getDomElement();
     },
 
     hasChild: function (child) {
-      if (_.isNull(this.values('children'))) {
+      if (_.isNull(this._v.children)) {
         return false;
       }
-      return this.values('children').hasChild(child);
+      return this._v.children.hasChild(child);
     },
 
     _hitTestRootBounds: function () {
-      var root = this.values('root');
+      var root = this._v.root;
 
-      var strokeSize = (this.values('stroke')) ?
-        this.values('stroke-width') * this.values('scale') : 0;
+      var strokeSize = (this._v.stroke) ?
+        this._v['stroke-width'] * this._v.scale : 0;
 
-      var aX = this.values('width') / 2;
-      var aY = this.values('height') / 2;
+      var aX = this._v.width / 2;
+      var aY = this._v.height / 2;
 
-      var x1 = this.values('globalX') - aX - strokeSize;
-      var x2 = this.values('globalX') + aX;
-      var y1 = this.values('globalY') - aY - strokeSize;
-      var y2 = this.values('globalY') + aY;
+      var x1 = this._v.globalX - aX - strokeSize;
+      var x2 = this._v.globalX + aX;
+      var y1 = this._v.globalY - aY - strokeSize;
+      var y2 = this._v.globalY + aY;
 
-      var px1 = root.values('x');
-      var px2 = root.values('x') + root.values('width');
-      var py1 = root.values('y');
-      var py2 = root.values('y') + root.values('height');
+      var px1 = root._v.x;
+      var px2 = root._v.x + root._v.width;
+      var py1 = root._v.y;
+      var py2 = root._v.y + root._v.height;
 
       if (x1 > px2 || x2 < px1 || y1 > py2 || y2 < py1) {
-        this.values('visible', false);
+        this._v.visible = false;
       }
       else {
-        this.values('visible', true);
+        this._v.visible = true;
       }
     },
 
     numChildren: function () {
-      if (_.isNull(this.values('children'))) {
+      if (_.isNull(this._v.children)) {
         return 0;
       }
-      return this.values('children').numElements();
+      return this._v.children.numElements();
     },
 
     _preRender: function () {
-      if (_.isNull(this.values('children'))) {
+      if (_.isNull(this._v.children)) {
         return;
       }
 
       // add or remove children from render node:
       _.forEach(this.getChildren(), function (child) {
-        if (child.values('active') && !child.values('onStage')) {
-          child.appendTo(this.values('node'));
-          child.values('onStage', true);
+        if (child._v.active && !child._v.onStage) {
+          child.appendTo(this._v.node);
+          child._v.onStage = true;
         }
-        else if (!child.values('active') && child.values('onStage')) {
-          child.detachFrom(this.values('node'));
-          child.values('onStage', false);
-          this.values('children').removeElement(child);
+        else if (!child._v.active && child._v.onStage) {
+          child.detachFrom(this._v.node);
+          child._v.onStage = false;
+          this._v.children.removeElement(child);
         }
       }, this);
     },
@@ -341,7 +335,7 @@ function (_, utils, Core, List, Node) {
     _postRender: function () {
       this._renderTransforms();
 
-      if (!_.isNull(this.values('parent'))) {
+      if (!_.isNull(this._v.parent)) {
         this._setGlobalXY();
         //this._hitTestRootBounds();
       }
@@ -359,7 +353,7 @@ function (_, utils, Core, List, Node) {
       if (arguments.length > 0) {
         _.forEach(children, function (child) {
           if (utils.checkBlock(child)) {
-            if (this.values('children').hasElement(child)) {
+            if (this._v.children.hasElement(child)) {
               this._dropChild(child);
               this.dirty(true);
             }
@@ -386,11 +380,11 @@ function (_, utils, Core, List, Node) {
     },
 
     render: function () {
-      if (this.values('active') && this.values('onStage')) {
+      if (this._v.active && this._v.onStage) {
         this._preRender();
 
-        if (this.values('visible') && this.values('dirty')) {
-          if (!_.isNull(this.values('children'))) {
+        if (this._v.visible && this._v.dirty) {
+          if (!_.isNull(this._v.children)) {
             _.forEachRight(this.getChildren(), function (child) {
               child.render();
             }, this);
@@ -410,30 +404,28 @@ function (_, utils, Core, List, Node) {
     },
 
     _renderTransforms: function () {
-      var newX = this.values('x');
-      var newY = this.values('y');
+      var newX = this._v.x;
+      var newY = this._v.y;
 
-      if (this.values('anchorMode') === utils.ANCHOR_MODE.AUTO) {
-        newX -= this.values('width') / 2;
-        newY -= this.values('height') / 2;
+      if (this._v.anchorMode === utils.ANCHOR_MODE.AUTO) {
+        newX -= this._v.width / 2;
+        newY -= this._v.height / 2;
       }
 
-      this.values('transform', utils.writeSvgTransform({
+      this._v.transform = utils.writeSvgTransform({
         'translate': [newX, newY],
-        'scale': [this.values('scale')],
-        'rotate': [this.values('rotate'), this.values('anchorX'), this.values('anchorY')]
-      }));
+        'scale': [this._v.scale],
+        'rotate': [this._v.rotate, this._v.anchorX, this._v.anchorY]
+      });
 
-      this.values('node').setAttributes('transform', this.values('transform'));
+      this._v.node.setAttributes('transform', this._v.transform);
     },
 
     _setGlobalXY: function () {
-      var parent = this.values('parent');
+      var parent = this._v.parent;
 
-      this.values({
-        globalX: parent.values('globalX') + this.values('x'),
-        globalY: parent.values('globalY') + this.values('y')
-      });
+      this._v.globalX = parent._v.globalX + this._v.x;
+      this._v.globalY = parent._v.globalY + this._v.y;
     },
 
     values: function (key, value) {
