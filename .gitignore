@@ -2,4 +2,4 @@
 *.lock
 *.DS_Store
 node_modules/
-packages/
+bower_components/

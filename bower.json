@@ -1,0 +1,13 @@
+{
+  "name": "cool-blocks",
+  "version": "0.1.0",
+  "ignore": [
+    ".git",
+    "bower_components",
+    "node_modules"
+  ],
+  "devDependencies": {
+    "gsap": "1.11.6",
+    "lodash": "2.4.1"
+  }
+}
