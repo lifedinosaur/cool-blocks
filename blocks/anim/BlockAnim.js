@@ -10,15 +10,13 @@ function (_, utils, Anim) {
   function BlockAnim(block, options) {
     Anim.call(this, options);
 
-    this.values({
-      block: block,
-      bindKeys: []
-    });
+    this._v.bindKeys = [];
+    this._v.block = block;
 
     _.forEach(options, function (value, key) {
-      if (!_.isUndefined(block.values(key))) {
-        this.values('bindKeys').push(key);
-        this.values(key, block.values(key));
+      if (!_.isUndefined(block._v[key])) {
+        this._v.bindKeys.push(key);
+        this._v[key] = block._v[key];
       }
     }, this);
   }
@@ -41,19 +39,19 @@ function (_, utils, Anim) {
     },
 
     destroy: function () {
-      this.values({
-        bindKeys: null,
-        block: null
-      });
+      this._v.bindKeys = null;
+      this._v.block = null;
+
       Anim.prototype.destroy.call(this);
     },
 
     _onUpdateInternal: function (self) {
-      _.forEach(self.values('bindKeys'), function (key) {
-        self.values('block').values(key, self.values(key));
+      _.forEach(self._v.bindKeys, function (key) {
+        self._v.block._v[key] = self._v[key];
       });
+      self._v.block.dirty(true);
 
-      var update = self.values('onUpdate');
+      var update = self._v.onUpdate;
       if(!_.isUndefined(update)) {
         update(self);
       }

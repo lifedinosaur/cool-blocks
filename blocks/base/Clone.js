@@ -11,9 +11,7 @@ function (_, utils, Block, Node) {
   function Clone(model, domClass, domId) {
     Block.call(this, domClass, domId);
 
-    this.values('node', new Node(
-      this._defaults.nodeType, this.values('domClass'),
-      this.values('domId'), model.values('domId')));
+    this._v.node = new Node(this._defaults.nodeType, this._v.domClass, this._v.domId, model._v.domId);
   }
 
   Clone.prototype = _.create(Block.prototype, {
@@ -29,7 +27,7 @@ function (_, utils, Block, Node) {
     }, Block.prototype._defaults),
 
     detachFrom: function (target) {
-      this.values('allocated', false);
+      this._v.allocated = false;
       return Block.prototype.detachFrom.call(this, target);
     }
   });

@@ -11,13 +11,11 @@ function (_, utils, Block, Node) {
   function Group(domClass, domId) {
     Block.call(this, domClass, domId);
 
-    this.values('rect',
-      new Node('rect', 'control-rect', this.id() + '-control-rect')
-        .setAttributes({
-          fill: 'transparent'
-        })
-        .appendTo(this.values('node'))
-    );
+    this._v.rect = new Node('rect', 'control-rect', this._v.id + '-control-rect')
+      .setAttributes({
+        fill: 'transparent'
+      })
+      .appendTo(this._v.node);
   }
 
   Group.prototype = _.create(Block.prototype, {
@@ -34,8 +32,8 @@ function (_, utils, Block, Node) {
     _calculateBounds: function () {
       Block.prototype._calculateBounds.call(this);
 
-      var bounds = this.values('bounds');
-      this.values('rect').setAttributes({
+      var bounds = this._v.bounds;
+      this._v.rect.setAttributes({
         height: bounds[3],
         width: bounds[2],
         x: bounds[0],
@@ -44,11 +42,8 @@ function (_, utils, Block, Node) {
     },
 
     destroy: function () {
-      this.values('rect').destroy();
-
-      this.values({
-        rect: null
-      });
+      this._v.rect.destroy();
+      this._v.rect = null;
 
       return Block.prototype.destroy.call(this);
     }

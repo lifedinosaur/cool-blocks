@@ -28,8 +28,10 @@ function (_, utils, Block) {
 
     _dirtyAttributes: _.union(['d'], Block.prototype._dirtyAttributes),
 
+
     drawPath: function (instructions) {
-      this.values('d', utils.writeSvgPath(instructions));
+      this._v.d = utils.writeSvgPath(instructions);
+      this.dirty(true);
       return this;
     }
   });

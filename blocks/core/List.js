@@ -10,7 +10,7 @@ function (_, utils, Core) {
   function List() {
     Core.call(this);
 
-    this.values('elements', {});
+    this._v.elements = {};
   }
 
 
@@ -26,8 +26,8 @@ function (_, utils, Core) {
 
     addElement: function (element) {
       if (utils.checkBlocksCore(element)) {
-        if (!this.hasElement(element) && element.id() !== this.id()) {
-          this.values('elements')[element.id()] = element;
+        if (!this.hasElement(element) && element._v.id !== this._v.id) {
+          this._v.elements[element._v.id] = element;
           return element;
         }
 
@@ -40,38 +40,38 @@ function (_, utils, Core) {
     },
 
     clear: function () {
-      this.values('elements', {});
+      this._v.elements = {};
     },
 
     destroy: function () {
-      this.values('elements', null);
+      this._v.elements = null;
       return Core.prototype.destroy.call(this);
     },
 
     getElements: function (key) {
       if (utils.checkString(key)) {
-        return this.values('elements')[key];
+        return this._v.elements[key];
       }
 
-      return this.values('elements');
+      return this._v.elements;
     },
 
     hasElement: function (element) {
       if (utils.checkBlocksCore(element)) {
-        return _.has(this.values('elements'), element.id());
+        return _.has(this._v.elements, element._v.id);
       }
 
-      return _.has(this.values('elements'), element);
+      return _.has(this._v.elements, element);
     },
 
     numElements: function () {
-      return _.size(this.values('elements'));
+      return _.size(this._v.elements);
     },
 
     removeElement: function (element) {
       if (utils.checkBlocksCore(element)) {
         if (this.hasElement(element)) {
-          delete this.values('elements')[element.id()];
+          delete this._v.elements[element._v.id];
           return element;
         }
 

@@ -7,15 +7,13 @@ function (_, utils) {
   'use strict';
 
   function Core() {
-    Object.call(this);
-
     this._v = _.defaults({
       id: _.uniqueId(this._defaults.id)
     }, this._defaults);
   }
 
 
-  Core.prototype = _.create(Object.prototype, {
+  Core.prototype = {
     'constructor': Core,
 
     _defaults: {
@@ -28,12 +26,8 @@ function (_, utils) {
       return this;
     },
 
-    id: function (newId) {
-      return this.values('id', newId);
-    },
-
     getConstructorName: function() {
-      return this.values('constructorName');
+      return this._v.constructorName;
     },
 
     values: function (key, value) {
@@ -56,7 +50,7 @@ function (_, utils) {
 
       return this._v;
     }
-  });
+  };
 
 
   return Core;
