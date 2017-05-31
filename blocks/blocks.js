@@ -28,6 +28,7 @@ define(
   'base/Clone',
   'base/Group',
   'base/Path',
+  'base/Pattern',
   'base/Pool',
   'base/Stage',
   'core/Block',
@@ -53,6 +54,7 @@ function () {
       Clone: require('base/Clone'),
       Group: require('base/Group'),
       Path: require('base/Path'),
+      Pattern: require('base/Pattern'),
       Pool: require('base/Pool'),
       Stage: require('base/Stage')
     },
