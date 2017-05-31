@@ -20,22 +20,15 @@ function (_, utils, Core, Clone) {
 
     Core.call(this);
 
-    this.values({
-      clones: [],
-      model: model,
-      size: (utils.checkNumber(size)) ? size : this._defaults.size,
-      stage: stage
-    });
+    this._v.clones = [];
+    this._v.model = model;
+    this._v.size = (utils.checkNumber(size)) ? size : this._defaults.size;
+    this._v.stage = stage;
 
-    model
-      .values({
-        active: true,
-        onStage: true
-      })
-      .appendTo(stage.values('defs'))
-      .render();
+    stage.addDef(model);
+    model.render();
 
-    for (var i = 0, ii = this.values('size'); i < ii; i++) {
+    for (var i = 0, ii = this._v.size; i < ii; i++) {
       this._createClone();
     }
   }
@@ -48,37 +41,31 @@ function (_, utils, Core, Clone) {
       constructorName: 'Pool',
       id: 'pool',
       model: null,
+      onStage: false,
       size: 10,
       stage: null
     }, Core.prototype._defaults),
 
-    _createClone: function () {
-      var clone = new Clone(this.values('model'));
-      this.values('clones').push(clone);
 
-      if (this.values('size') < this.values('clones').length) {
-        this.values('size', this.values('clones'.length));
+    _createClone: function () {
+      var clone = new Clone(this._v.model);
+      this._v.clones.push(clone);
+
+      if (this._v.size < this._v.clones.length) {
+        this._v.size = this._v.clones.length;
       }
 
       return clone;
     },
 
     destroy: function () {
-      _.forEachRight(this.values('clones'), function (clone) {
+      _.forEachRight(this._v.clones, function (clone) {
         clone.destroy();
         clone = null;
       }, this);
+      this._v.clones = null;
 
-      this.values('model')
-        .values({
-          active: false,
-          onStage: false
-        })
-        .detachFrom(this.values('stage').values('defs'));
-
-      this.values({
-        clones: null
-      });
+      this._v.stage.removeDef(this._v.model);
 
       return Core.prototype.destroy.call(this);
     },
@@ -86,9 +73,9 @@ function (_, utils, Core, Clone) {
     getFirstAvailable: function () {
       var first = null;
 
-      _.forEachRight(this.values('clones'), function (clone) {
-        if (!clone.values('allocated')) {
-          clone.values('allocated', true);
+      _.forEachRight(this._v.clones, function (clone) {
+        if (!clone._v.allocated) {
+          clone._v.allocated = true;
           first = clone;
           return false;
         }
@@ -98,7 +85,8 @@ function (_, utils, Core, Clone) {
         return first;
       }
 
-      first = this._createClone().values('allocated', true);
+      first = this._createClone();
+      first._v.allocated = true;
       return first;
     }
   });
